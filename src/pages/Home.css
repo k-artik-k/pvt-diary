@@ -1,0 +1,31 @@
+.home-page {
+  padding: 0 20px 40px;
+}
+
+.home-feed {
+  max-width: 720px;
+}
+
+.home-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+}
+
+.home-empty h2 {
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+}
+
+.home-empty p {
+  font-size: 14px;
+}
+
+.home-loading {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
