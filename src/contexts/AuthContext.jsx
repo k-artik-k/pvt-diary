@@ -51,6 +51,17 @@ export function AuthProvider({ children }) {
   }
 
   async function signUp(email, password, username) {
+    // Check username availability first
+    const { data: existing } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('username', username)
+      .maybeSingle();
+    
+    if (existing) {
+      return { data: null, error: { message: 'Username is already taken' } };
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
