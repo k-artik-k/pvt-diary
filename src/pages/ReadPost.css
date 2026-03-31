@@ -1,13 +1,27 @@
 .read-post-page {
-  padding: 20px;
-  max-width: 760px;
+  width: min(100%, var(--page-shell-max));
+  margin: 0 auto;
+  padding: 12px 24px 40px;
 }
 
 .read-post-nav {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 20px;
+  width: 100%;
+  max-width: var(--page-reading-max);
+  margin: 0 auto 24px;
+}
+
+.read-post-nav-spacer {
+  flex: 1;
+}
+
+.read-post-nav-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .read-post-nav-btn {
@@ -29,28 +43,33 @@
 }
 
 .read-post-title {
-  font-size: 26px;
+  display: block;
+  width: 100%;
+  max-width: var(--page-reading-max);
+  margin: 0 auto 8px;
+  font-size: 24px;
   font-weight: 700;
-  margin-bottom: 4px;
+  line-height: 1.1;
   outline: none;
   border: none;
   background: transparent;
   color: var(--text);
-  width: 100%;
   padding: 0;
   font-family: var(--font);
   letter-spacing: -0.4px;
 }
 
 .read-post-subtitle {
-  font-size: 15px;
+  display: block;
+  width: 100%;
+  max-width: var(--page-reading-max);
+  margin: 0 auto 18px;
+  font-size: 14px;
   font-style: italic;
   color: var(--text-secondary);
-  margin-bottom: 16px;
   outline: none;
   border: none;
   background: transparent;
-  width: 100%;
   padding: 0;
   font-family: var(--font-body);
 }
@@ -60,7 +79,9 @@
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
-  margin-bottom: 16px;
+  width: 100%;
+  max-width: var(--page-reading-max);
+  margin: 0 auto 18px;
 }
 
 .read-post-date {
@@ -69,11 +90,13 @@
 }
 
 .read-post-body {
+  width: 100%;
+  max-width: var(--page-reading-max);
+  margin: 0 auto 28px;
   font-family: var(--font-body);
-  font-size: 15px;
-  line-height: 1.85;
+  font-size: 14px;
+  line-height: 1.9;
   color: var(--text);
-  margin-bottom: 24px;
 }
 
 .read-post-body img {
@@ -109,18 +132,13 @@
   font-family: var(--font);
 }
 
-.read-post-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 24px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border);
-}
-
 .read-post-activity {
-  margin-top: 20px;
-  padding: 12px;
+  width: 100%;
+  max-width: var(--page-reading-max);
+  margin: 24px auto 0;
+  padding: 16px;
   background: var(--bg-surface);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
 }
 
@@ -137,9 +155,14 @@
 }
 
 .read-post-locked {
+  max-width: 620px;
+  margin: 72px auto 0;
   text-align: center;
-  padding: 40px;
+  padding: 40px 32px;
   color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
 }
 
 .read-post-locked svg {
@@ -147,5 +170,26 @@
 }
 
 .read-post-edit-body {
-  margin-bottom: 24px;
+  width: 100%;
+  max-width: var(--page-reading-max);
+  margin: 0 auto 24px;
+}
+
+@media (max-width: 768px) {
+  .read-post-page {
+    padding: 8px 16px 32px;
+  }
+
+  .read-post-nav {
+    margin-bottom: 18px;
+  }
+
+  .read-post-title {
+    font-size: 22px;
+  }
+
+  .read-post-locked {
+    margin-top: 40px;
+    padding: 32px 20px;
+  }
 }

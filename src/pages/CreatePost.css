@@ -1,18 +1,20 @@
 .create-post-page {
-  padding: 20px;
-  max-width: 760px;
+  width: min(100%, var(--page-shell-max));
+  margin: 0 auto;
+  padding: 12px 24px 40px;
 }
 
 .create-post-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 20px;
+  gap: 12px;
+  width: min(100%, 980px);
+  margin: 0 auto 18px;
 }
 
 .create-post-back {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -20,65 +22,129 @@
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: color var(--transition);
+  transition: color var(--transition), background var(--transition);
   border: none;
 }
 
 .create-post-back:hover {
   color: var(--text);
+  background: var(--bg-hover);
 }
 
-.create-post-label {
-  font-size: 14px;
+.create-post-kicker {
+  display: block;
+  font-size: 11px;
   color: var(--text-muted);
-  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 4px;
 }
 
-.create-post-form {
+.create-post-heading {
+  font-size: 26px;
+  line-height: 1.15;
+}
+
+.create-post-shell {
+  width: min(100%, 980px);
+  margin: 0 auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.create-post-meta-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.create-post-meta-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  padding: 12px;
+  min-height: 112px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+}
+
+.create-post-meta-label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 8px;
+}
+
+.create-post-space-select,
+.create-post-date-input {
+  width: 100%;
+}
+
+.create-post-meta-hint {
+  margin-top: auto;
+  padding-top: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.create-post-space-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin-bottom: 16px;
 }
 
 .create-post-title-input {
   width: 100%;
-  padding: 10px 0;
-  font-size: 22px;
+  padding: 16px 18px;
+  font-size: 20px;
   font-weight: 600;
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  border-bottom: 1px solid var(--border);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   font-family: var(--font);
   letter-spacing: -0.3px;
+  margin-bottom: 14px;
 }
 
 .create-post-title-input:focus {
-  box-shadow: none;
-  border-bottom-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-dim), 0 0 0 1px var(--accent);
+  border-color: var(--accent);
 }
 
 .create-post-subtitle-row {
   display: flex;
-  gap: 8px;
-  align-items: flex-start;
+  gap: 12px;
+  align-items: stretch;
+  margin-bottom: 12px;
 }
 
 .create-post-subtitle-input {
   flex: 1;
-  padding: 8px 0;
+  padding: 11px 14px;
   font-size: 14px;
   font-style: italic;
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  border-bottom: 1px solid var(--border);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   font-family: var(--font-body);
+  min-height: 46px;
 }
 
 .create-post-subtitle-input:focus {
-  box-shadow: none;
-  border-bottom-color: var(--accent);
+  border-color: var(--accent);
 }
 
 .create-post-tags-dropdown {
@@ -86,30 +152,43 @@
 }
 
 .create-post-tags-btn {
-  padding: 6px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  height: 100%;
+  min-height: 46px;
   font-size: 13px;
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-secondary);
   cursor: pointer;
   white-space: nowrap;
-  transition: color var(--transition);
+  transition: color var(--transition), border-color var(--transition), background var(--transition);
 }
 
 .create-post-tags-btn:hover {
   color: var(--text);
+  background: var(--bg-hover);
+}
+
+.create-post-tags-btn svg {
+  width: 12px;
+  height: 12px;
 }
 
 .tags-dropdown-menu {
   position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + 6px);
   right: 0;
-  min-width: 200px;
+  min-width: 220px;
   background: var(--bg-surface);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 4px;
   z-index: 20;
-  max-height: 200px;
+  max-height: 220px;
   overflow-y: auto;
   box-shadow: 0 8px 24px rgba(0,0,0,0.4);
 }
@@ -118,38 +197,76 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 5px 10px;
+  padding: 6px 10px;
   font-size: 12px;
   cursor: pointer;
   border-radius: 4px;
   color: var(--text-secondary);
-  transition: color var(--transition);
+  transition: color var(--transition), background var(--transition);
 }
 
 .tags-dropdown-item:hover {
   color: var(--text);
+  background: rgba(255,255,255,0.02);
 }
 
 .create-post-selected-tags {
   display: flex;
-  gap: 4px;
+  gap: 6px;
   flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.create-post-editor-wrap {
+  margin-bottom: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--bg-surface);
+}
+
+.create-post-error {
+  margin-bottom: 12px;
+  color: var(--danger);
+  font-size: 13px;
 }
 
 .create-post-actions {
   display: flex;
   gap: 8px;
   justify-content: flex-end;
-  margin-top: 8px;
+  margin-top: 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-light);
 }
 
-.create-post-date-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
+@media (max-width: 768px) {
+  .create-post-page {
+    padding: 8px 16px 32px;
+  }
 
-.create-post-date-input {
-  padding: 6px 10px;
-  font-size: 13px;
+  .create-post-heading {
+    font-size: 22px;
+  }
+
+  .create-post-shell {
+    padding: 16px;
+  }
+
+  .create-post-meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .create-post-subtitle-row {
+    flex-direction: column;
+  }
+
+  .create-post-tags-btn {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .create-post-actions {
+    flex-wrap: wrap;
+  }
 }

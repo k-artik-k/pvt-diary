@@ -4,8 +4,8 @@
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
-  padding: 0 16px;
-  gap: 12px;
+  padding: 0 20px;
+  gap: 16px;
   position: fixed;
   top: 0;
   left: 0;
@@ -14,75 +14,84 @@
 }
 
 .header-logo {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   white-space: nowrap;
   color: var(--text);
-  letter-spacing: -0.4px;
+  letter-spacing: -0.5px;
+  cursor: pointer;
+  user-select: none;
 }
 
 .header-search {
   flex: 1;
-  max-width: 420px;
+  max-width: 480px;
   margin: 0 auto;
   position: relative;
 }
 
 .header-search-input {
   width: 100%;
-  padding: 7px 14px 7px 34px;
+  padding: 10px 16px 10px 40px;
   border-radius: var(--radius-pill);
   background: var(--bg-elevated);
   font-size: 14px;
   border: none;
+  height: 40px;
 }
 
 .header-search-input:focus {
-  box-shadow: 0 0 0 1px var(--border);
+  box-shadow: 0 0 0 2px var(--accent-dim);
 }
 
 .header-search-icon {
   position: absolute;
-  left: 12px;
+  left: 14px;
   top: 50%;
   transform: translateY(-50%);
   color: var(--text-muted);
   pointer-events: none;
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
 }
 
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .header-create-btn {
-  width: 30px;
-  height: 30px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: transparent;
+  background: var(--bg-elevated);
   color: var(--text-secondary);
-  font-size: 18px;
-  transition: color var(--transition);
+  font-size: 20px;
+  transition: all var(--transition);
   border: none;
 }
 
 .header-create-btn:hover {
   color: var(--text);
+  background: var(--bg-hover);
 }
 
 .header-avatar {
-  width: 28px;
-  height: 28px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   overflow: hidden;
   cursor: pointer;
   position: relative;
+  transition: opacity var(--transition);
+}
+
+.header-avatar:hover {
+  opacity: 0.85;
 }
 
 .header-avatar img {
@@ -92,10 +101,8 @@
 }
 
 @media (max-width: 768px) {
-  .header-logo {
-    font-size: 14px;
-  }
-  .header-search {
-    max-width: none;
-  }
+  .header { padding: 0 14px; gap: 10px; }
+  .header-logo { font-size: 14px; }
+  .header-search { max-width: none; }
+  .header-search-input { height: 36px; padding: 8px 14px 8px 36px; }
 }

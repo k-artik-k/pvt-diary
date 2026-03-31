@@ -1,28 +1,15 @@
-.calendar-grid-container {
-  padding: 20px;
-}
-
-.calendar-year-select {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 16px;
-}
-
-.calendar-year-select select {
-  font-size: 13px;
-  padding: 4px 10px;
-  background: var(--bg-elevated);
-}
-
 .calendar-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 24px 20px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px;
 }
 
 .calendar-month {
-  background: transparent;
-  padding: 0;
+  min-width: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 14px 12px;
 }
 
 .calendar-month-title {
@@ -52,23 +39,30 @@
 
 .calendar-day {
   font-size: 11px;
+  min-height: 24px;
   padding: 2px 0;
   color: var(--text-muted);
   position: relative;
   cursor: default;
   line-height: 1.9;
+  border-radius: 6px;
 }
 
 .calendar-day.has-post {
-  background: transparent;
-  color: var(--accent);
+  background: rgba(192, 57, 43, 0.1);
+  color: #d86a5f;
   cursor: pointer;
   font-weight: 700;
+}
+
+.calendar-day.has-post:hover {
+  background: rgba(192, 57, 43, 0.16);
 }
 
 .calendar-day.today {
   color: var(--text);
   font-weight: 600;
+  background: rgba(255,255,255,0.03);
 }
 
 .calendar-tooltip {
@@ -87,9 +81,15 @@
   box-shadow: 0 4px 12px rgba(0,0,0,0.4);
 }
 
+@media (max-width: 1100px) {
+  .calendar-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 768px) {
   .calendar-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 20px 16px;
   }
 }

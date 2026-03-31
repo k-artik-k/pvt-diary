@@ -8,7 +8,10 @@ export default function TagPill({ name, pillColor, textColor, onClick, onRemove 
       {name}
       {onRemove && (
         <button
-          onClick={(e) => { e.stopPropagation(); onRemove(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
           style={{
             marginLeft: 4,
             background: 'none',
@@ -20,7 +23,7 @@ export default function TagPill({ name, pillColor, textColor, onClick, onRemove 
             opacity: 0.7
           }}
         >
-          ×
+          &times;
         </button>
       )}
     </span>

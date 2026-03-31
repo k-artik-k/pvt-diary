@@ -6,30 +6,21 @@
 
 .layout-main {
   flex: 1;
-  margin-left: calc(var(--sidebar-width) + 12px);
+  margin-left: calc(var(--sidebar-width) + 18px);
   min-width: 0;
   overflow-y: auto;
   transition: margin-left var(--transition);
 }
 
 .layout-main.sidebar-collapsed {
-  margin-left: calc(var(--sidebar-collapsed) + 12px);
-}
-
-@media (min-width: 769px) {
-  .layout-main {
-    margin-left: min(calc(30% + 12px), 292px);
-  }
-  .layout-main.sidebar-collapsed {
-    margin-left: calc(var(--sidebar-collapsed) + 12px);
-  }
+  margin-left: calc(var(--sidebar-collapsed) + 18px);
 }
 
 @media (max-width: 768px) {
   .layout-main {
-    margin-left: 24px;
+    margin-left: 0;
   }
   .layout-main.sidebar-collapsed {
-    margin-left: 24px;
+    margin-left: 0;
   }
 }

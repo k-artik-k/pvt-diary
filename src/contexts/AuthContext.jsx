@@ -50,12 +50,61 @@ export function AuthProvider({ children }) {
     return { data, error };
   }
 
+  async function updateUsername(username) {
+    const nextUsername = username.trim();
+    if (!nextUsername) {
+      return { data: null, error: { message: 'Username is required' } };
+    }
+
+    const { data: existing, error: existingError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('username', nextUsername)
+      .neq('id', user.id)
+      .maybeSingle();
+
+    if (existingError) {
+      return { data: null, error: existingError };
+    }
+
+    if (existing) {
+      return { data: null, error: { message: 'Username is already taken' } };
+    }
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({
+        username: nextUsername,
+        display_name: nextUsername
+      })
+      .eq('id', user.id)
+      .select()
+      .single();
+
+    if (!error) {
+      setProfile(data);
+      const { error: metadataError } = await supabase.auth.updateUser({
+        data: { username: nextUsername, display_name: nextUsername }
+      });
+      if (metadataError) {
+        console.warn('Unable to sync auth metadata:', metadataError.message);
+      }
+    }
+
+    return { data, error };
+  }
+
   async function signUp(email, password, username) {
+    const nextUsername = username.trim();
+    if (!nextUsername) {
+      return { data: null, error: { message: 'Username is required' } };
+    }
+
     // Check username availability first
     const { data: existing } = await supabase
       .from('profiles')
       .select('id')
-      .eq('username', username)
+      .eq('username', nextUsername)
       .maybeSingle();
     
     if (existing) {
@@ -66,7 +115,7 @@ export function AuthProvider({ children }) {
       email,
       password,
       options: {
-        data: { username, display_name: username }
+        data: { username: nextUsername, display_name: nextUsername }
       }
     });
     return { data, error };
@@ -121,6 +170,7 @@ export function AuthProvider({ children }) {
     resetPassword,
     updatePassword,
     updateProfile,
+    updateUsername,
     fetchProfile: () => user && fetchProfile(user.id)
   };
 

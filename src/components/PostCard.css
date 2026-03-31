@@ -3,8 +3,22 @@
   cursor: pointer;
 }
 
+.post-card-header-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.post-card-title-wrap {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .post-card-title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   margin-bottom: 2px;
   color: var(--text);
@@ -12,7 +26,7 @@
 }
 
 .post-card-subtitle {
-  font-size: 14px;
+  font-size: 13px;
   font-style: italic;
   color: var(--text-secondary);
   margin-bottom: 4px;
@@ -20,7 +34,7 @@
 }
 
 .post-card-body {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-muted);
   line-height: 1.5;
   display: -webkit-box;

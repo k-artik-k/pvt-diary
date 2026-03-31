@@ -71,6 +71,10 @@ export default function Home({ searchQuery = '' }) {
     return post.post_tags?.map(pt => pt.tags).filter(Boolean) || [];
   }
 
+  function handlePostDeleted(postId) {
+    setPosts(prev => prev.filter(post => post.id !== postId));
+  }
+
   if (!loading && posts.length === 0) {
     return (
       <div className="home-page">
@@ -87,7 +91,7 @@ export default function Home({ searchQuery = '' }) {
       <div className="home-feed">
         {posts.map((post, i) => (
           <div key={post.id}>
-            <PostCard post={post} tags={getPostTags(post)} />
+            <PostCard post={post} tags={getPostTags(post)} onDeleted={handlePostDeleted} />
             {i < posts.length - 1 && <hr className="post-separator" />}
           </div>
         ))}

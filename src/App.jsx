@@ -10,6 +10,7 @@ import Calendar from './pages/Calendar';
 import CreatePost from './pages/CreatePost';
 import ReadPost from './pages/ReadPost';
 import SpacePage from './pages/SpacePage';
+import SharedSpacePage from './pages/SharedSpacePage';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -67,6 +68,13 @@ function AppRoutes() {
         <ProtectedRoute>
           <Layout>
             <SpacePage />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/shared/:shareLink" element={
+        <ProtectedRoute>
+          <Layout>
+            <SharedSpacePage />
           </Layout>
         </ProtectedRoute>
       } />

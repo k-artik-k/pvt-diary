@@ -6,6 +6,7 @@ import RichTextEditor from '../components/RichTextEditor';
 import TagPill from '../components/TagPill';
 import ConfirmDialog from '../components/ConfirmDialog';
 import PassphraseDialog from '../components/PassphraseDialog';
+import PostActionsMenu from '../components/PostActionsMenu';
 import { sanitizeHTML } from '../utils/sanitize';
 import { formatDate } from '../utils/dateHelpers';
 import './ReadPost.css';
@@ -42,19 +43,18 @@ export default function ReadPost() {
       setEditTitle(data.title);
       setEditSubtitle(data.subtitle);
       setEditBody(data.body);
-      setTags(data.post_tags?.map(pt => pt.tags).filter(Boolean) || []);
+      setTags(data.post_tags?.map((item) => item.tags).filter(Boolean) || []);
       setIsOwner(data.user_id === user?.id);
 
       if (data.passphrase_hash) {
         setDecryptedBody(null);
       }
 
-      // Log activity for shared posts
       if (data.user_id !== user?.id && user) {
         await supabase.from('post_activity').insert({
           post_id: id,
           viewer_id: user.id,
-          viewer_username: profile?.username || user.email,
+          viewer_username: profile?.username || profile?.display_name || user.email?.split('@')[0] || 'user',
           action: 'viewed'
         });
       }
@@ -62,32 +62,39 @@ export default function ReadPost() {
     setLoading(false);
   }, [id, user, profile]);
 
-  useEffect(() => { fetchPost(); }, [fetchPost]);
+  useEffect(() => {
+    fetchPost();
+  }, [fetchPost]);
 
-  // Fetch all tags for tag editing
   useEffect(() => {
     if (user) {
       supabase.from('tags').select('*').eq('user_id', user.id).order('name').then(({ data }) => setAllTags(data || []));
     }
   }, [user]);
 
-  // Fetch activity for post owner
   useEffect(() => {
     if (post && isOwner) {
-      supabase.from('post_activity').select('*').eq('post_id', id).order('created_at', { ascending: false }).limit(20)
+      supabase
+        .from('post_activity')
+        .select('*')
+        .eq('post_id', id)
+        .order('created_at', { ascending: false })
+        .limit(20)
         .then(({ data }) => setActivity(data || []));
     }
   }, [post, isOwner, id]);
 
-  // Fetch all post IDs for arrow key navigation
   useEffect(() => {
     if (user) {
-      supabase.from('posts').select('id').eq('user_id', user.id).order('created_at', { ascending: false })
-        .then(({ data }) => setAllPostIds((data || []).map(p => p.id)));
+      supabase
+        .from('posts')
+        .select('id')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .then(({ data }) => setAllPostIds((data || []).map((item) => item.id)));
     }
   }, [user]);
 
-  // Arrow key navigation
   useEffect(() => {
     function handleKey(e) {
       if (editing) return;
@@ -103,6 +110,7 @@ export default function ReadPost() {
         navigate(`/post/${allPostIds[idx + 1]}`);
       }
     }
+
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
   }, [allPostIds, id, navigate, editing]);
@@ -113,24 +121,24 @@ export default function ReadPost() {
       const data = encoder.encode(passphrase);
       const hashBuffer = await crypto.subtle.digest('SHA-256', data);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      const hash = hashArray.map((byte) => byte.toString(16).padStart(2, '0')).join('');
 
       if (hash !== post.passphrase_hash) {
         alert('Incorrect passphrase');
         return;
       }
 
-      // Decrypt
-      const combined = Uint8Array.from(atob(post.encrypted_body), c => c.charCodeAt(0));
+      const combined = Uint8Array.from(atob(post.encrypted_body), (char) => char.charCodeAt(0));
       const iv = combined.slice(0, 12);
       const encrypted = combined.slice(12);
       const key = await crypto.subtle.importKey('raw', hashBuffer, 'AES-GCM', false, ['decrypt']);
       const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, encrypted);
       const decoder = new TextDecoder();
-      setDecryptedBody(decoder.decode(decrypted));
-      setEditBody(decoder.decode(decrypted));
+      const decryptedText = decoder.decode(decrypted);
+      setDecryptedBody(decryptedText);
+      setEditBody(decryptedText);
       setShowPassphrase(false);
-    } catch (err) {
+    } catch {
       alert('Decryption failed. Check your passphrase.');
     }
   }
@@ -152,7 +160,7 @@ export default function ReadPost() {
   }
 
   async function togglePostTag(tag) {
-    const exists = tags.find(t => t.id === tag.id);
+    const exists = tags.find((item) => item.id === tag.id);
     if (exists) {
       await supabase.from('post_tags').delete().eq('post_id', id).eq('tag_id', tag.id);
     } else {
@@ -164,7 +172,6 @@ export default function ReadPost() {
   if (loading) return <div className="read-post-page"><p style={{ color: 'var(--text-muted)' }}>Loading...</p></div>;
   if (!post) return <div className="read-post-page"><p style={{ color: 'var(--text-muted)' }}>Post not found</p></div>;
 
-  // Locked post — show unlock prompt
   if (post.passphrase_hash && !decryptedBody && !showPassphrase) {
     return (
       <div className="read-post-page">
@@ -172,6 +179,8 @@ export default function ReadPost() {
           <button className="read-post-nav-btn" onClick={() => navigate(-1)}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
           </button>
+          <div className="read-post-nav-spacer" />
+          <PostActionsMenu postId={post.id} canDelete={isOwner} onDelete={() => setShowDelete(true)} />
         </div>
         <div className="read-post-locked">
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -204,25 +213,28 @@ export default function ReadPost() {
         <button className="read-post-nav-btn" onClick={() => navigate(-1)}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         </button>
-        {isOwner && !editing && (
-          <button className="btn btn-ghost" style={{ fontSize: 13 }} onClick={() => setEditing(true)}>
-            Edit
-          </button>
-        )}
-        {editing && (
-          <>
-            <button className="btn btn-primary" style={{ fontSize: 13 }} onClick={handleSave}>Save</button>
-            <button className="btn btn-ghost" style={{ fontSize: 13 }} onClick={() => { setEditing(false); setEditTitle(post.title); setEditSubtitle(post.subtitle); setEditBody(displayBody); }}>
-              Cancel
+        <div className="read-post-nav-actions">
+          {isOwner && !editing && (
+            <button className="btn btn-ghost" style={{ fontSize: 13 }} onClick={() => setEditing(true)}>
+              Edit
             </button>
-          </>
-        )}
+          )}
+          {editing && (
+            <>
+              <button className="btn btn-primary" style={{ fontSize: 13 }} onClick={handleSave}>Save</button>
+              <button className="btn btn-ghost" style={{ fontSize: 13 }} onClick={() => { setEditing(false); setEditTitle(post.title); setEditSubtitle(post.subtitle); setEditBody(displayBody); }}>
+                Cancel
+              </button>
+            </>
+          )}
+          {!editing && <PostActionsMenu postId={post.id} canDelete={isOwner} onDelete={() => setShowDelete(true)} />}
+        </div>
       </div>
 
       {editing ? (
         <>
-          <input className="read-post-title" value={editTitle} onChange={e => setEditTitle(e.target.value)} placeholder="Title" />
-          <input className="read-post-subtitle" value={editSubtitle} onChange={e => setEditSubtitle(e.target.value)} placeholder="Subtitle" />
+          <input className="read-post-title" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Title" />
+          <input className="read-post-subtitle" value={editSubtitle} onChange={(e) => setEditSubtitle(e.target.value)} placeholder="Subtitle" />
           <div className="read-post-edit-body">
             <RichTextEditor
               content={editBody}
@@ -237,9 +249,14 @@ export default function ReadPost() {
           <h1 className="read-post-title" style={{ cursor: isOwner ? 'text' : 'default' }}>{post.title}</h1>
           {post.subtitle && <div className="read-post-subtitle">{post.subtitle}</div>}
           <div className="read-post-meta">
-            {tags.map(tag => (
-              <TagPill key={tag.id} name={tag.name} pillColor={tag.pill_color} textColor={tag.text_color}
-                onRemove={isOwner ? () => togglePostTag(tag) : undefined} />
+            {tags.map((tag) => (
+              <TagPill
+                key={tag.id}
+                name={tag.name}
+                pillColor={tag.pill_color}
+                textColor={tag.text_color}
+                onRemove={isOwner ? () => togglePostTag(tag) : undefined}
+              />
             ))}
             <span className="read-post-date">{formatDate(post.created_at)}</span>
             {post.is_draft && <span style={{ fontSize: 11, color: 'var(--text-muted)', background: 'var(--bg-elevated)', padding: '1px 8px', borderRadius: 'var(--radius-pill)' }}>Draft</span>}
@@ -248,32 +265,29 @@ export default function ReadPost() {
         </>
       )}
 
-      {/* Tag management */}
       {isOwner && !editing && (
         <div style={{ marginTop: 12 }}>
           <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>Add tags:</p>
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-            {allTags.filter(t => !tags.find(tt => tt.id === t.id)).map(tag => (
-              <TagPill key={tag.id} name={tag.name} pillColor={tag.pill_color} textColor={tag.text_color}
-                onClick={() => togglePostTag(tag)} />
+            {allTags.filter((tag) => !tags.find((existingTag) => existingTag.id === tag.id)).map((tag) => (
+              <TagPill
+                key={tag.id}
+                name={tag.name}
+                pillColor={tag.pill_color}
+                textColor={tag.text_color}
+                onClick={() => togglePostTag(tag)}
+              />
             ))}
           </div>
         </div>
       )}
 
-      {isOwner && (
-        <div className="read-post-actions">
-          <button className="btn btn-danger" onClick={() => setShowDelete(true)}>Delete</button>
-        </div>
-      )}
-
-      {/* Activity tracking */}
       {isOwner && activity.length > 0 && (
         <div className="read-post-activity">
           <h4>Activity</h4>
-          {activity.map(a => (
-            <div key={a.id} className="activity-item">
-              {a.viewer_username} — {a.action} — {formatDate(a.created_at)}
+          {activity.map((item) => (
+            <div key={item.id} className="activity-item">
+              {item.viewer_username} - {item.action} - {formatDate(item.created_at)}
             </div>
           ))}
         </div>

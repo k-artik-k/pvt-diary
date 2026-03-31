@@ -1,0 +1,55 @@
+.post-actions-menu {
+  position: relative;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.post-actions-trigger {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  background: transparent;
+  transition: color var(--transition), background var(--transition);
+}
+
+.post-actions-trigger:hover,
+.post-actions-trigger.open {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.post-actions-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 156px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.32);
+  z-index: 30;
+}
+
+.post-actions-item {
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  transition: color var(--transition), background var(--transition);
+}
+
+.post-actions-item:hover {
+  color: var(--text);
+  background: rgba(255,255,255,0.03);
+}
+
+.post-actions-item.danger {
+  color: var(--danger);
+}

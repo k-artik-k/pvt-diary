@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
@@ -13,7 +13,8 @@ export default function CreatePost() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const spaceId = searchParams.get('space');
+  const initialSpaceId = searchParams.get('space') || '';
+  const tagDropdownRef = useRef(null);
 
   const [title, setTitle] = useState('');
   const [subtitle, setSubtitle] = useState('');
@@ -21,49 +22,88 @@ export default function CreatePost() {
   const [isMarkdown, setIsMarkdown] = useState(false);
   const [selectedTags, setSelectedTags] = useState([]);
   const [allTags, setAllTags] = useState([]);
+  const [allSpaces, setAllSpaces] = useState([]);
+  const [selectedSpaceId, setSelectedSpaceId] = useState(initialSpaceId);
   const [showTagDropdown, setShowTagDropdown] = useState(false);
   const [dateTag, setDateTag] = useState('');
   const [showPassphrase, setShowPassphrase] = useState(false);
   const [passphrase, setPassphrase] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
-  useEffect(() => {
-    if (user) fetchTags();
-  }, [user]);
-
-  // Auto-apply space tag
-  useEffect(() => {
-    if (spaceId && allTags.length > 0) {
-      fetchSpaceTag();
-    }
-  }, [spaceId, allTags]);
-
-  async function fetchTags() {
+  const fetchTags = useCallback(async () => {
+    if (!user) return;
     const { data } = await supabase.from('tags').select('*').eq('user_id', user.id).order('name');
     setAllTags(data || []);
-  }
+  }, [user]);
 
-  async function fetchSpaceTag() {
-    const { data } = await supabase.from('spaces').select('tag_id').eq('id', spaceId).single();
-    if (data?.tag_id) {
-      const tag = allTags.find(t => t.id === data.tag_id);
-      if (tag && !selectedTags.find(t => t.id === tag.id)) {
-        setSelectedTags(prev => [...prev, tag]);
+  const fetchSpaces = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase.from('spaces').select('id, name, icon, tag_id').eq('user_id', user.id).order('created_at');
+    setAllSpaces(data || []);
+  }, [user]);
+
+  const applySpaceTag = useCallback(async () => {
+    if (!selectedSpaceId || allTags.length === 0) return;
+
+    const linkedTagId = allSpaces.find((space) => space.id === selectedSpaceId)?.tag_id;
+    if (!linkedTagId) return;
+
+    const tag = allTags.find((item) => item.id === linkedTagId);
+    if (tag && !selectedTags.find((item) => item.id === tag.id)) {
+      setSelectedTags((prev) => [...prev, tag]);
+    }
+  }, [allSpaces, allTags, selectedSpaceId, selectedTags]);
+
+  useEffect(() => {
+    fetchTags();
+    fetchSpaces();
+  }, [fetchTags, fetchSpaces]);
+
+  useEffect(() => {
+    applySpaceTag();
+  }, [applySpaceTag]);
+
+  useEffect(() => {
+    if (!selectedSpaceId || allSpaces.length === 0) return;
+    const stillOwned = allSpaces.some((space) => space.id === selectedSpaceId);
+    if (!stillOwned) {
+      setSelectedSpaceId('');
+    }
+  }, [allSpaces, selectedSpaceId]);
+
+  useEffect(() => {
+    function handleClick(event) {
+      if (tagDropdownRef.current && !tagDropdownRef.current.contains(event.target)) {
+        setShowTagDropdown(false);
       }
     }
-  }
+
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const selectedSpace = useMemo(
+    () => allSpaces.find((space) => space.id === selectedSpaceId) || null,
+    [allSpaces, selectedSpaceId]
+  );
 
   function toggleTag(tag) {
-    setSelectedTags(prev => {
-      const exists = prev.find(t => t.id === tag.id);
-      if (exists) return prev.filter(t => t.id !== tag.id);
+    setSelectedTags((prev) => {
+      const exists = prev.find((item) => item.id === tag.id);
+      if (exists) return prev.filter((item) => item.id !== tag.id);
       return [...prev, tag];
     });
   }
 
   async function handleSave(isDraft) {
-    if (!title.trim()) return;
+    if (!title.trim()) {
+      setSaveError('Title is required.');
+      return;
+    }
+
     setSaving(true);
+    setSaveError('');
 
     const sanitizedBody = isMarkdown ? body : sanitizeHTML(body);
     const diaryDate = parseDiaryDate(title);
@@ -76,9 +116,8 @@ export default function CreatePost() {
       const data = encoder.encode(passphrase);
       const hashBuffer = await crypto.subtle.digest('SHA-256', data);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
-      passphraseHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      passphraseHash = hashArray.map((byte) => byte.toString(16).padStart(2, '0')).join('');
 
-      // Encrypt body with AES
       const key = await crypto.subtle.importKey('raw', hashBuffer, 'AES-GCM', false, ['encrypt']);
       const iv = crypto.getRandomValues(new Uint8Array(12));
       const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoder.encode(sanitizedBody));
@@ -98,16 +137,25 @@ export default function CreatePost() {
       passphrase_hash: passphraseHash,
       encrypted_body: encryptedBody,
       date_tag: dateTag || (diaryDate ? diaryDate.toISOString().split('T')[0] : null),
-      space_id: spaceId || null
+      space_id: selectedSpaceId || null
     }).select().single();
 
-    if (!error && post && selectedTags.length > 0) {
-      const tagInserts = selectedTags.map(t => ({ post_id: post.id, tag_id: t.id }));
-      await supabase.from('post_tags').insert(tagInserts);
+    if (error || !post) {
+      setSaving(false);
+      setSaveError(error?.message || 'Could not save this post.');
+      return;
+    }
+
+    if (selectedTags.length > 0) {
+      const tagInserts = selectedTags.map((tag) => ({ post_id: post.id, tag_id: tag.id }));
+      const { error: tagError } = await supabase.from('post_tags').insert(tagInserts);
+      if (tagError) {
+        setSaveError('Post saved, but tags could not be attached.');
+      }
     }
 
     setSaving(false);
-    if (!error) navigate('/');
+    navigate(selectedSpaceId ? `/space/${selectedSpaceId}` : '/');
   }
 
   return (
@@ -116,16 +164,65 @@ export default function CreatePost() {
         <button className="create-post-back" onClick={() => navigate(-1)}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         </button>
-        <span className="create-post-label">Create Post</span>
+        <div>
+          <span className="create-post-kicker">Compose</span>
+          <h1 className="create-post-heading">New Entry</h1>
+        </div>
       </div>
 
-      <div className="create-post-form">
+      <div className="create-post-shell">
+        <div className="create-post-meta-grid">
+          <div className="create-post-meta-card">
+            <label className="create-post-meta-label" htmlFor="post-space">Posting To</label>
+            <select
+              id="post-space"
+              className="create-post-space-select"
+              value={selectedSpaceId}
+              onChange={(e) => setSelectedSpaceId(e.target.value)}
+            >
+              <option value="">Private only</option>
+              {allSpaces.map((space) => (
+                <option key={space.id} value={space.id}>
+                  {space.icon} {space.name}
+                </option>
+              ))}
+            </select>
+            <p className="create-post-meta-hint">
+              {selectedSpace
+                ? `People added to ${selectedSpace.name} can read this post.`
+                : 'Keep this private, or choose a space to share it.'}
+            </p>
+          </div>
+
+          <div className="create-post-meta-card">
+            <label className="create-post-meta-label" htmlFor="post-date">Date</label>
+            <input
+              id="post-date"
+              type="date"
+              className="create-post-date-input"
+              value={dateTag}
+              onChange={(e) => setDateTag(e.target.value)}
+            />
+            <p className="create-post-meta-hint">Optional. Used for the calendar view.</p>
+          </div>
+        </div>
+
+        {selectedSpace && (
+          <div className="create-post-space-banner">
+            <span>{selectedSpace.icon}</span>
+            <span>Sharing in {selectedSpace.name}</span>
+          </div>
+        )}
+
         <input
           className="create-post-title-input"
           type="text"
           placeholder="Title"
           value={title}
-          onChange={e => setTitle(e.target.value)}
+          onChange={(e) => {
+            setTitle(e.target.value);
+            setSaveError('');
+          }}
         />
 
         <div className="create-post-subtitle-row">
@@ -134,28 +231,36 @@ export default function CreatePost() {
             type="text"
             placeholder="Subtitle"
             value={subtitle}
-            onChange={e => setSubtitle(e.target.value)}
-            style={{ flex: 1 }}
+            onChange={(e) => setSubtitle(e.target.value)}
           />
-          <div className="create-post-tags-dropdown">
+
+          <div className="create-post-tags-dropdown" ref={tagDropdownRef}>
             <button
               className="create-post-tags-btn"
-              onClick={() => setShowTagDropdown(!showTagDropdown)}
+              type="button"
+              onClick={() => setShowTagDropdown((prev) => !prev)}
             >
-              Tags ▾
+              <span>Tags</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
             </button>
+
             {showTagDropdown && (
               <div className="tags-dropdown-menu">
                 {allTags.length === 0 && (
-                  <div style={{ padding: 8, fontSize: 12, color: 'var(--text-muted)', textAlign: 'center' }}>No tags. Create in profile menu.</div>
+                  <div style={{ padding: 8, fontSize: 12, color: 'var(--text-muted)', textAlign: 'center' }}>
+                    No tags yet. Create them in the profile menu.
+                  </div>
                 )}
-                {allTags.map(tag => (
+
+                {allTags.map((tag) => (
                   <div
                     key={tag.id}
                     className="tags-dropdown-item"
                     onClick={() => toggleTag(tag)}
                   >
-                    <input type="checkbox" checked={!!selectedTags.find(t => t.id === tag.id)} readOnly style={{ accentColor: tag.pill_color }} />
+                    <input type="checkbox" checked={!!selectedTags.find((item) => item.id === tag.id)} readOnly style={{ accentColor: tag.pill_color }} />
                     <TagPill name={tag.name} pillColor={tag.pill_color} textColor={tag.text_color} />
                   </div>
                 ))}
@@ -166,31 +271,33 @@ export default function CreatePost() {
 
         {selectedTags.length > 0 && (
           <div className="create-post-selected-tags">
-            {selectedTags.map(tag => (
+            {selectedTags.map((tag) => (
               <TagPill key={tag.id} name={tag.name} pillColor={tag.pill_color} textColor={tag.text_color} onRemove={() => toggleTag(tag)} />
             ))}
           </div>
         )}
 
-        <div className="create-post-date-row">
-          <label style={{ fontSize: 13, color: 'var(--text-muted)' }}>Date for calendar (optional):</label>
-          <input type="date" className="create-post-date-input" value={dateTag} onChange={e => setDateTag(e.target.value)} />
+        <div className="create-post-editor-wrap">
+          <RichTextEditor
+            content={body}
+            onChange={setBody}
+            isMarkdown={isMarkdown}
+            onToggleMode={setIsMarkdown}
+            placeholder="Start writing..."
+          />
         </div>
 
-        <RichTextEditor
-          content={body}
-          onChange={setBody}
-          isMarkdown={isMarkdown}
-          onToggleMode={setIsMarkdown}
-          placeholder="Start writing..."
-        />
+        {saveError && <p className="create-post-error">{saveError}</p>}
 
         <div className="create-post-actions">
           <button
             className="btn btn-outline"
             onClick={() => {
-              if (passphrase) { setPassphrase(null); }
-              else { setShowPassphrase(true); }
+              if (passphrase) {
+                setPassphrase(null);
+              } else {
+                setShowPassphrase(true);
+              }
             }}
           >
             {passphrase ? (
@@ -211,7 +318,10 @@ export default function CreatePost() {
       {showPassphrase && (
         <PassphraseDialog
           mode="set"
-          onSubmit={(p) => { setPassphrase(p); setShowPassphrase(false); }}
+          onSubmit={(value) => {
+            setPassphrase(value);
+            setShowPassphrase(false);
+          }}
           onCancel={() => setShowPassphrase(false)}
         />
       )}

@@ -49,7 +49,7 @@ export default function Header({ onSearch }) {
           id="global-search"
           className="header-search-input"
           type="text"
-          placeholder="Search posts by title..."
+          placeholder="Search"
           value={searchQuery}
           onChange={handleSearch}
           onKeyDown={handleSearchKeyDown}

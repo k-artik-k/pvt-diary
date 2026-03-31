@@ -1,33 +1,40 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import './Sidebar.css';
 
+const DEFAULT_SPACE_ICON = '📁';
+
 export default function Sidebar({ collapsed, onToggle }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  const [spaces, setSpaces] = useState([]);
+  const [ownedSpaces, setOwnedSpaces] = useState([]);
+  const [sharedSpaces, setSharedSpaces] = useState([]);
   const [showCreateSpace, setShowCreateSpace] = useState(false);
   const [newSpaceName, setNewSpaceName] = useState('');
-  const [newSpaceIcon, setNewSpaceIcon] = useState('folder');
+  const [newSpaceIcon, setNewSpaceIcon] = useState(DEFAULT_SPACE_ICON);
   const isMobile = window.innerWidth <= 768;
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  useEffect(() => {
-    if (user) fetchSpaces();
-  }, [user]);
+  const fetchAccessibleSpaces = useCallback(async () => {
+    if (!user) return;
 
-  async function fetchSpaces() {
     const { data } = await supabase
       .from('spaces')
-      .select('*, tags(name, pill_color, text_color)')
-      .eq('user_id', user.id)
+      .select('id, name, icon, user_id, show_in_menu')
       .eq('show_in_menu', true)
       .order('created_at');
-    setSpaces(data || []);
-  }
+
+    const spaces = data || [];
+    setOwnedSpaces(spaces.filter((space) => space.user_id === user.id));
+    setSharedSpaces(spaces.filter((space) => space.user_id !== user.id));
+  }, [user]);
+
+  useEffect(() => {
+    fetchAccessibleSpaces();
+  }, [fetchAccessibleSpaces]);
 
   function navigateTo(path) {
     navigate(path);
@@ -40,17 +47,19 @@ export default function Sidebar({ collapsed, onToggle }) {
 
   async function handleCreateSpace() {
     if (!newSpaceName.trim()) return;
+
     const { error } = await supabase.from('spaces').insert({
       user_id: user.id,
       name: newSpaceName.trim(),
-      icon: newSpaceIcon,
+      icon: newSpaceIcon || DEFAULT_SPACE_ICON,
       show_in_menu: true
     });
+
     if (!error) {
       setNewSpaceName('');
-      setNewSpaceIcon('folder');
+      setNewSpaceIcon(DEFAULT_SPACE_ICON);
       setShowCreateSpace(false);
-      fetchSpaces();
+      fetchAccessibleSpaces();
     }
   }
 
@@ -62,7 +71,29 @@ export default function Sidebar({ collapsed, onToggle }) {
     }
   }
 
+  function renderSpaceItem(space, isShared = false) {
+    return (
+      <button
+        key={space.id}
+        className={`sidebar-item ${isActive(`/space/${space.id}`) ? 'active' : ''}`}
+        onClick={() => navigateTo(`/space/${space.id}`)}
+        title={isShared ? `${space.name} (shared with you)` : space.name}
+      >
+        <span className="sidebar-item-icon">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+          </svg>
+        </span>
+        <span className="sidebar-item-content">
+          <span className="sidebar-item-label">{space.name}</span>
+          {isShared && <span className="sidebar-item-badge">shared</span>}
+        </span>
+      </button>
+    );
+  }
+
   const sidebarClass = `sidebar ${collapsed && !isMobile ? 'collapsed' : ''} ${isMobile && mobileOpen ? 'open' : ''}`;
+  const showSectionLabels = !collapsed || isMobile;
 
   return (
     <div className="sidebar-wrapper">
@@ -96,24 +127,19 @@ export default function Sidebar({ collapsed, onToggle }) {
             <span className="sidebar-item-label">Calendar</span>
           </button>
 
-          {spaces.length > 0 && (
-            <div className="sidebar-space-divider" />
-          )}
+          {ownedSpaces.length > 0 && <div className="sidebar-space-divider" />}
 
-          {spaces.map(space => (
-            <button
-              key={space.id}
-              className={`sidebar-item ${isActive(`/space/${space.id}`) ? 'active' : ''}`}
-              onClick={() => navigateTo(`/space/${space.id}`)}
-            >
-              <span className="sidebar-item-icon">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-                </svg>
-              </span>
-              <span className="sidebar-item-label">{space.name}</span>
-            </button>
-          ))}
+          {ownedSpaces.length > 0 && showSectionLabels && (
+            <div className="sidebar-section-label">Your Spaces</div>
+          )}
+          {ownedSpaces.map((space) => renderSpaceItem(space))}
+
+          {sharedSpaces.length > 0 && <div className="sidebar-space-divider" />}
+
+          {sharedSpaces.length > 0 && showSectionLabels && (
+            <div className="sidebar-section-label">Shared With You</div>
+          )}
+          {sharedSpaces.map((space) => renderSpaceItem(space, true))}
         </nav>
 
         {!collapsed && (
@@ -135,7 +161,7 @@ export default function Sidebar({ collapsed, onToggle }) {
                     value={newSpaceIcon}
                     onChange={(e) => setNewSpaceIcon(e.target.value)}
                     style={{ width: 60, fontSize: 12 }}
-                    title="Icon name"
+                    title="Space icon"
                   />
                   <button className="btn btn-primary" style={{ flex: 1, fontSize: 12, padding: '4px 8px' }} onClick={handleCreateSpace}>
                     Create

@@ -2,18 +2,23 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 
+const DEFAULT_SPACE_ICON = '\uD83D\uDCC1';
+
 export default function SpaceManager() {
   const { user } = useAuth();
   const [spaces, setSpaces] = useState([]);
   const [tags, setTags] = useState([]);
   const [name, setName] = useState('');
-  const [icon, setIcon] = useState('📁');
+  const [icon, setIcon] = useState(DEFAULT_SPACE_ICON);
   const [tagId, setTagId] = useState('');
   const [showInMenu, setShowInMenu] = useState(true);
   const [editingId, setEditingId] = useState(null);
 
   useEffect(() => {
-    if (user) { fetchSpaces(); fetchTags(); }
+    if (user) {
+      fetchSpaces();
+      fetchTags();
+    }
   }, [user]);
 
   async function fetchSpaces() {
@@ -40,7 +45,11 @@ export default function SpaceManager() {
     } else {
       await supabase.from('spaces').insert(payload);
     }
-    setName(''); setIcon('📁'); setTagId(''); setShowInMenu(true); setEditingId(null);
+    setName('');
+    setIcon(DEFAULT_SPACE_ICON);
+    setTagId('');
+    setShowInMenu(true);
+    setEditingId(null);
     fetchSpaces();
   }
 
@@ -50,7 +59,11 @@ export default function SpaceManager() {
   }
 
   function startEdit(space) {
-    setEditingId(space.id); setName(space.name); setIcon(space.icon); setTagId(space.tag_id || ''); setShowInMenu(space.show_in_menu);
+    setEditingId(space.id);
+    setName(space.name);
+    setIcon(space.icon);
+    setTagId(space.tag_id || '');
+    setShowInMenu(space.show_in_menu);
   }
 
   function copyShareLink(space) {
@@ -62,15 +75,15 @@ export default function SpaceManager() {
     <div style={{ padding: '8px 16px' }}>
       <div style={{ marginBottom: 12 }}>
         <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-          <input type="text" value={icon} onChange={e => setIcon(e.target.value)} style={{ width: 40, textAlign: 'center', fontSize: 13 }} title="Icon (emoji)" />
-          <input type="text" placeholder="Space name" value={name} onChange={e => setName(e.target.value)} style={{ flex: 1, fontSize: 13 }} />
+          <input type="text" value={icon} onChange={(e) => setIcon(e.target.value)} style={{ width: 40, textAlign: 'center', fontSize: 13 }} title="Icon (emoji)" />
+          <input type="text" placeholder="Space name" value={name} onChange={(e) => setName(e.target.value)} style={{ flex: 1, fontSize: 13 }} />
         </div>
-        <select value={tagId} onChange={e => setTagId(e.target.value)} style={{ width: '100%', marginBottom: 8, fontSize: 13 }}>
+        <select value={tagId} onChange={(e) => setTagId(e.target.value)} style={{ width: '100%', marginBottom: 8, fontSize: 13 }}>
           <option value="">Link to tag (optional)</option>
-          {tags.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+          {tags.map((tag) => <option key={tag.id} value={tag.id}>{tag.name}</option>)}
         </select>
         <label style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-secondary)', marginBottom: 8, cursor: 'pointer' }}>
-          <input type="checkbox" checked={showInMenu} onChange={e => setShowInMenu(e.target.checked)} />
+          <input type="checkbox" checked={showInMenu} onChange={(e) => setShowInMenu(e.target.checked)} />
           Show in sidebar menu
         </label>
         <button className="btn btn-primary" style={{ fontSize: 12, padding: '4px 12px', width: '100%' }} onClick={handleSave}>
@@ -79,14 +92,14 @@ export default function SpaceManager() {
         {editingId && <button className="btn btn-ghost" style={{ fontSize: 12, width: '100%', marginTop: 4 }} onClick={() => { setEditingId(null); setName(''); }}>Cancel</button>}
       </div>
       <div style={{ borderTop: '1px solid var(--border)', paddingTop: 8 }}>
-        {spaces.map(space => (
+        {spaces.map((space) => (
           <div key={space.id} style={{ padding: '6px 0', borderBottom: '1px solid var(--border-light)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: 14 }}>{space.icon} {space.name}</span>
               <div style={{ display: 'flex', gap: 4 }}>
-                <button onClick={() => copyShareLink(space)} style={{ fontSize: 11, color: 'var(--accent)', cursor: 'pointer' }}>Copy Link</button>
+                <button onClick={() => copyShareLink(space)} style={{ fontSize: 11, color: 'var(--accent)', cursor: 'pointer' }}>Copy Share Link</button>
                 <button onClick={() => startEdit(space)} style={{ fontSize: 11, color: 'var(--text-muted)', cursor: 'pointer' }}>Edit</button>
-                <button onClick={() => handleDelete(space.id)} style={{ fontSize: 11, color: 'var(--danger)', cursor: 'pointer' }}>×</button>
+                <button onClick={() => handleDelete(space.id)} style={{ fontSize: 11, color: 'var(--danger)', cursor: 'pointer' }}>&times;</button>
               </div>
             </div>
             {space.tags && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Tag: {space.tags.name}</span>}

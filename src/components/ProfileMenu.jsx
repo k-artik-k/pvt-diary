@@ -1,6 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../supabaseClient';
 import { exportAllData, importData } from '../utils/exportImport';
 import TagManager from './TagManager';
 import SpaceManager from './SpaceManager';
@@ -8,26 +7,45 @@ import PeopleManager from './PeopleManager';
 import './ProfileMenu.css';
 
 export default function ProfileMenu({ onClose }) {
-  const { user, profile, signOut, updateProfile } = useAuth();
+  const { user, profile, signOut, updateUsername } = useAuth();
   const [activePanel, setActivePanel] = useState(null);
+  const [username, setUsername] = useState('');
+  const [editingUsername, setEditingUsername] = useState(false);
+  const [savingUsername, setSavingUsername] = useState(false);
+  const [usernameError, setUsernameError] = useState('');
 
-  async function handleAvatarUpload(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const currentUsername =
+    profile?.username ||
+    profile?.display_name ||
+    user?.email?.split('@')[0] ||
+    'user';
 
-    const ext = file.name.split('.').pop();
-    const path = `${user.id}/avatar.${ext}`;
+  useEffect(() => {
+    setUsername(currentUsername);
+  }, [currentUsername]);
 
-    const { error: uploadError } = await supabase.storage
-      .from('post-images')
-      .upload(path, file, { upsert: true });
-
-    if (!uploadError) {
-      const { data: { publicUrl } } = supabase.storage
-        .from('post-images')
-        .getPublicUrl(path);
-      await updateProfile({ avatar_url: publicUrl });
+  async function handleUsernameSave() {
+    const nextUsername = username.trim();
+    if (!nextUsername) {
+      setUsernameError('Username is required');
+      return;
     }
+
+    if (nextUsername === profile?.username) {
+      setEditingUsername(false);
+      setUsernameError('');
+      return;
+    }
+
+    setSavingUsername(true);
+    setUsernameError('');
+    const { error } = await updateUsername(nextUsername);
+    if (error) {
+      setUsernameError(error.message || 'Unable to update username');
+    } else {
+      setEditingUsername(false);
+    }
+    setSavingUsername(false);
   }
 
   async function handleExport() {
@@ -53,57 +71,98 @@ export default function ProfileMenu({ onClose }) {
     input.click();
   }
 
-  if (activePanel === 'tags') {
+  function renderPanel(title, content) {
     return (
-      <div className="profile-menu" style={{ width: 320, maxHeight: '70vh', overflowY: 'auto' }}>
-        <div style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <button className="btn btn-ghost" style={{ padding: '2px 6px', fontSize: 13 }} onClick={() => setActivePanel(null)}>←</button>
-          <span style={{ fontWeight: 600, fontSize: 14 }}>Manage Tags</span>
+      <div className="profile-menu profile-menu-panel">
+        <div className="profile-menu-panel-header">
+          <button
+            className="profile-menu-back-btn"
+            onClick={() => setActivePanel(null)}
+            aria-label="Back"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </button>
+          <span>{title}</span>
         </div>
         <div className="profile-menu-sep" />
-        <TagManager />
+        {content}
       </div>
     );
+  }
+
+  if (activePanel === 'tags') {
+    return renderPanel('Manage Tags', <TagManager />);
   }
 
   if (activePanel === 'spaces') {
-    return (
-      <div className="profile-menu" style={{ width: 320, maxHeight: '70vh', overflowY: 'auto' }}>
-        <div style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <button className="btn btn-ghost" style={{ padding: '2px 6px', fontSize: 13 }} onClick={() => setActivePanel(null)}>←</button>
-          <span style={{ fontWeight: 600, fontSize: 14 }}>Manage Spaces</span>
-        </div>
-        <div className="profile-menu-sep" />
-        <SpaceManager />
-      </div>
-    );
+    return renderPanel('Manage Spaces', <SpaceManager />);
   }
 
   if (activePanel === 'people') {
-    return (
-      <div className="profile-menu" style={{ width: 320, maxHeight: '70vh', overflowY: 'auto' }}>
-        <div style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <button className="btn btn-ghost" style={{ padding: '2px 6px', fontSize: 13 }} onClick={() => setActivePanel(null)}>←</button>
-          <span style={{ fontWeight: 600, fontSize: 14 }}>Manage People</span>
-        </div>
-        <div className="profile-menu-sep" />
-        <PeopleManager />
-      </div>
-    );
+    return renderPanel('Manage People', <PeopleManager />);
   }
 
   return (
     <div className="profile-menu">
-      <div style={{ padding: '8px 16px', fontSize: 13, color: 'var(--text-muted)' }}>
-        {profile?.display_name || profile?.username || user?.email}
+      <div className="profile-menu-profile">
+        <div>
+          <div className="profile-menu-label">Username</div>
+          <div className="profile-menu-username">{currentUsername}</div>
+        </div>
+        {!editingUsername && (
+          <button
+            className="profile-menu-inline-btn"
+            onClick={() => {
+              setEditingUsername(true);
+              setUsername(currentUsername);
+              setUsernameError('');
+            }}
+          >
+            Edit
+          </button>
+        )}
       </div>
-      <div className="profile-menu-sep" />
 
-      <label className="profile-upload-label">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M16 12l-4-4-4 4M12 16V8"/></svg>
-        Upload Avatar
-        <input type="file" accept="image/*" onChange={handleAvatarUpload} style={{ display: 'none' }} />
-      </label>
+      {editingUsername && (
+        <div className="profile-menu-username-editor">
+          <input
+            className="profile-menu-username-input"
+            type="text"
+            value={username}
+            onChange={(e) => {
+              setUsername(e.target.value);
+              setUsernameError('');
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleUsernameSave();
+              if (e.key === 'Escape') {
+                setEditingUsername(false);
+                setUsername(currentUsername);
+                setUsernameError('');
+              }
+            }}
+            autoFocus
+          />
+          {usernameError && <p className="profile-menu-error">{usernameError}</p>}
+          <div className="profile-menu-inline-actions">
+            <button
+              className="profile-menu-inline-btn"
+              onClick={() => {
+                setEditingUsername(false);
+                setUsername(currentUsername);
+                setUsernameError('');
+              }}
+            >
+              Cancel
+            </button>
+            <button className="profile-menu-save-btn" onClick={handleUsernameSave} disabled={savingUsername}>
+              {savingUsername ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="profile-menu-sep" />
 
