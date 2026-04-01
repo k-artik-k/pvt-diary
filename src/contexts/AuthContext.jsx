@@ -129,11 +129,11 @@ export function AuthProvider({ children }) {
     return { data, error };
   }
 
-  async function signInWithGoogle() {
+  async function signInWithGoogle(redirectPath = '/') {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin
+        redirectTo: `${window.location.origin}/login?redirect=${encodeURIComponent(redirectPath)}`
       }
     });
     return { data, error };

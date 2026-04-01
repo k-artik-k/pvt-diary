@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import './Login.css';
 
 export default function Login() {
   const { signIn, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirect = searchParams.get('redirect') || '/';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -18,12 +20,12 @@ export default function Login() {
     setError('');
     const { error: err } = await signIn(email, password);
     if (err) setError(err.message);
-    else navigate('/');
+    else navigate(redirect, { replace: true });
     setLoading(false);
   }
 
   async function handleGoogle() {
-    const { error: err } = await signInWithGoogle();
+    const { error: err } = await signInWithGoogle(redirect);
     if (err) setError(err.message);
   }
 

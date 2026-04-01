@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import TagPill from './TagPill';
+import SettingsItemMenu from './SettingsItemMenu';
+import './SettingsManager.css';
 
 const DEFAULT_COLORS = [
   '#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#8b5cf6',
@@ -17,33 +19,68 @@ export default function TagManager() {
   const [textColor, setTextColor] = useState('#ffffff');
   const [hexInput, setHexInput] = useState('');
   const [editingId, setEditingId] = useState(null);
+  const [feedback, setFeedback] = useState({ type: '', text: '' });
 
   useEffect(() => {
     if (user) fetchTags();
   }, [user]);
 
   async function fetchTags() {
-    const { data } = await supabase.from('tags').select('*').eq('user_id', user.id).order('created_at');
+    const { data } = await supabase
+      .from('tags')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at');
+
     setTags(data || []);
   }
 
-  async function handleSave() {
-    if (!name.trim() || name.length > 20) return;
-    if (editingId) {
-      await supabase.from('tags').update({ name: name.trim(), pill_color: pillColor, text_color: textColor }).eq('id', editingId);
-    } else {
-      await supabase.from('tags').insert({ user_id: user.id, name: name.trim(), pill_color: pillColor, text_color: textColor });
-    }
+  function resetForm() {
     setName('');
     setPillColor('#3b82f6');
     setTextColor('#ffffff');
     setEditingId(null);
     setHexInput('');
+  }
+
+  async function handleSave() {
+    const nextName = name.trim();
+
+    if (!nextName || nextName.length > 20) {
+      setFeedback({ type: 'error', text: 'Use 1 to 20 characters.' });
+      return;
+    }
+
+    const query = editingId
+      ? supabase
+          .from('tags')
+          .update({ name: nextName, pill_color: pillColor, text_color: textColor })
+          .eq('id', editingId)
+      : supabase
+          .from('tags')
+          .insert({ user_id: user.id, name: nextName, pill_color: pillColor, text_color: textColor });
+
+    const { error } = await query;
+
+    if (error) {
+      setFeedback({ type: 'error', text: error.message || 'Could not save tag.' });
+      return;
+    }
+
+    setFeedback({ type: 'success', text: editingId ? 'Tag updated.' : 'Tag created.' });
+    resetForm();
     fetchTags();
   }
 
   async function handleDelete(id) {
-    await supabase.from('tags').delete().eq('id', id);
+    const { error } = await supabase.from('tags').delete().eq('id', id);
+
+    if (error) {
+      setFeedback({ type: 'error', text: error.message || 'Could not delete tag.' });
+      return;
+    }
+
+    setFeedback({ type: 'success', text: 'Tag deleted.' });
     fetchTags();
   }
 
@@ -52,71 +89,110 @@ export default function TagManager() {
     setName(tag.name);
     setPillColor(tag.pill_color);
     setTextColor(tag.text_color);
+    setHexInput(tag.pill_color);
+    setFeedback({ type: '', text: '' });
   }
 
   return (
-    <div style={{ padding: '8px 16px' }}>
-      <div style={{ marginBottom: 12 }}>
-        <input
-          type="text"
-          placeholder="Tag name (max 20)"
-          value={name}
-          onChange={(e) => setName(e.target.value.slice(0, 20))}
-          style={{ width: '100%', marginBottom: 8, fontSize: 13 }}
-        />
-        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>Pill color:</div>
-        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 8 }}>
+    <div className="settings-tool">
+      <div className="settings-tool-form">
+        <label className="settings-tool-field">
+          <span className="settings-tool-label">Name</span>
+          <input
+            className="settings-tool-input"
+            type="text"
+            placeholder="Tag name"
+            value={name}
+            onChange={(event) => {
+              setName(event.target.value.slice(0, 20));
+              setFeedback({ type: '', text: '' });
+            }}
+          />
+        </label>
+
+        <div className="settings-tool-swatches">
           {DEFAULT_COLORS.map((color) => (
             <button
               key={color}
-              onClick={() => setPillColor(color)}
-              style={{
-                width: 20,
-                height: 20,
-                borderRadius: '50%',
-                background: color,
-                border: pillColor === color ? '2px solid var(--text)' : '2px solid transparent',
-                cursor: 'pointer'
+              type="button"
+              className={`settings-tool-swatch ${pillColor === color ? 'active' : ''}`}
+              onClick={() => {
+                setPillColor(color);
+                setHexInput(color);
+                setFeedback({ type: '', text: '' });
               }}
+              style={{ background: color }}
+              aria-label={`Use ${color}`}
             />
           ))}
         </div>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+
+        <div className="settings-tool-inline">
           <input
+            className="settings-tool-input"
             type="text"
             placeholder="#hex"
             value={hexInput}
-            onChange={(e) => {
-              setHexInput(e.target.value);
-              if (/^#[0-9a-fA-F]{6}$/.test(e.target.value)) setPillColor(e.target.value);
+            onChange={(event) => {
+              const value = event.target.value;
+              setHexInput(value);
+              if (/^#[0-9a-fA-F]{6}$/.test(value)) {
+                setPillColor(value);
+              }
+              setFeedback({ type: '', text: '' });
             }}
-            style={{ width: 80, fontSize: 12 }}
           />
-          <label style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 4, color: 'var(--text-muted)' }}>
-            Text:
-            <input type="color" value={textColor} onChange={(e) => setTextColor(e.target.value)} style={{ width: 24, height: 20, padding: 0, border: 'none', cursor: 'pointer' }} />
-          </label>
+          <input
+            className="settings-tool-inline-color"
+            type="color"
+            value={textColor}
+            onChange={(event) => {
+              setTextColor(event.target.value);
+              setFeedback({ type: '', text: '' });
+            }}
+            title="Text color"
+          />
         </div>
-        <div style={{ marginBottom: 8 }}>
-          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Preview: </span>
+
+        <div className="settings-tool-preview">
+          <span>Preview</span>
           <TagPill name={name || 'Tag'} pillColor={pillColor} textColor={textColor} />
         </div>
-        <button className="btn btn-primary" style={{ fontSize: 12, padding: '4px 12px', width: '100%' }} onClick={handleSave}>
-          {editingId ? 'Update' : 'Create'} Tag
-        </button>
-        {editingId && <button className="btn btn-ghost" style={{ fontSize: 12, width: '100%', marginTop: 4 }} onClick={() => { setEditingId(null); setName(''); }}>Cancel</button>}
+
+        {feedback.text && (
+          <p className={`settings-tool-note ${feedback.type}`}>{feedback.text}</p>
+        )}
+
+        <div className="settings-tool-actions">
+          <button className="btn btn-primary" onClick={handleSave}>
+            {editingId ? 'Save' : 'Create'}
+          </button>
+          {editingId && (
+            <button className="btn btn-ghost" onClick={resetForm}>
+              Cancel
+            </button>
+          )}
+        </div>
       </div>
-      <div style={{ borderTop: '1px solid var(--border)', paddingTop: 8 }}>
+
+      <div className="settings-tool-list">
         {tags.map((tag) => (
-          <div key={tag.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' }}>
-            <TagPill name={tag.name} pillColor={tag.pill_color} textColor={tag.text_color} />
-            <div style={{ display: 'flex', gap: 4 }}>
-              <button onClick={() => startEdit(tag)} style={{ fontSize: 12, color: 'var(--text-muted)', cursor: 'pointer' }}>Edit</button>
-              <button onClick={() => handleDelete(tag.id)} style={{ fontSize: 12, color: 'var(--danger)', cursor: 'pointer' }}>&times;</button>
+          <div key={tag.id} className="settings-tool-item">
+            <div className="settings-tool-main">
+              <TagPill name={tag.name} pillColor={tag.pill_color} textColor={tag.text_color} />
+            </div>
+            <div className="settings-tool-item-actions">
+              <SettingsItemMenu
+                items={[
+                  { label: 'Edit', onSelect: () => startEdit(tag) },
+                  { label: 'Delete', danger: true, onSelect: () => handleDelete(tag.id) }
+                ]}
+              />
             </div>
           </div>
         ))}
-        {tags.length === 0 && <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center' }}>No tags yet</p>}
+
+        {tags.length === 0 && <p className="settings-tool-empty">No tags yet.</p>}
       </div>
     </div>
   );

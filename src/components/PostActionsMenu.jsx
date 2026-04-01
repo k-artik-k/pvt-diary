@@ -18,7 +18,17 @@ async function copyText(text) {
   document.body.removeChild(textarea);
 }
 
-export default function PostActionsMenu({ postId, canDelete = false, onDelete }) {
+export default function PostActionsMenu({
+  postId,
+  shareUrl,
+  canManage = false,
+  isDraft = false,
+  onEdit,
+  onOrganize,
+  onDuplicate,
+  onToggleDraft,
+  onDelete
+}) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const menuRef = useRef(null);
@@ -36,8 +46,7 @@ export default function PostActionsMenu({ postId, canDelete = false, onDelete })
 
   async function handleCopy(event) {
     event.stopPropagation();
-    const url = `${window.location.origin}/post/${postId}`;
-    await copyText(url);
+    await copyText(shareUrl || `${window.location.origin}/post/${postId}`);
     setCopied(true);
     setOpen(false);
     window.setTimeout(() => setCopied(false), 1800);
@@ -52,6 +61,12 @@ export default function PostActionsMenu({ postId, canDelete = false, onDelete })
     event.stopPropagation();
     setOpen(false);
     onDelete?.();
+  }
+
+  function handleMenuAction(event, action) {
+    event.stopPropagation();
+    setOpen(false);
+    action?.();
   }
 
   return (
@@ -71,10 +86,27 @@ export default function PostActionsMenu({ postId, canDelete = false, onDelete })
 
       {open && (
         <div className="post-actions-dropdown">
+          {canManage && (
+            <>
+              <button className="post-actions-item" onClick={(event) => handleMenuAction(event, onEdit)}>
+                Edit Post
+              </button>
+              <button className="post-actions-item" onClick={(event) => handleMenuAction(event, onOrganize)}>
+                Move / Tags
+              </button>
+              <button className="post-actions-item" onClick={(event) => handleMenuAction(event, onDuplicate)}>
+                Duplicate as Draft
+              </button>
+              <button className="post-actions-item" onClick={(event) => handleMenuAction(event, onToggleDraft)}>
+                {isDraft ? 'Publish Post' : 'Mark as Draft'}
+              </button>
+              <div className="post-actions-divider" />
+            </>
+          )}
           <button className="post-actions-item" onClick={handleCopy}>
             {copied ? 'Copied' : 'Copy Link'}
           </button>
-          {canDelete && (
+          {canManage && (
             <button className="post-actions-item danger" onClick={handleDeleteClick}>
               Delete Post
             </button>

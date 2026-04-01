@@ -1,10 +1,15 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
+import { getSharedSpaceUrl } from '../utils/appLinks';
+import SettingsItemMenu from './SettingsItemMenu';
+import './SettingsManager.css';
 
 const DEFAULT_SPACE_ICON = '\uD83D\uDCC1';
 
 export default function SpaceManager() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [spaces, setSpaces] = useState([]);
   const [tags, setTags] = useState([]);
@@ -13,48 +18,83 @@ export default function SpaceManager() {
   const [tagId, setTagId] = useState('');
   const [showInMenu, setShowInMenu] = useState(true);
   const [editingId, setEditingId] = useState(null);
+  const [feedback, setFeedback] = useState({ type: '', text: '' });
 
   useEffect(() => {
-    if (user) {
-      fetchSpaces();
-      fetchTags();
-    }
+    if (!user) return;
+    fetchSpaces();
+    fetchTags();
   }, [user]);
 
   async function fetchSpaces() {
-    const { data } = await supabase.from('spaces').select('*, tags(name)').eq('user_id', user.id).order('created_at');
+    const { data } = await supabase
+      .from('spaces')
+      .select('id, name, icon, tag_id, show_in_menu, share_link, tags(name)')
+      .eq('user_id', user.id)
+      .order('created_at');
+
     setSpaces(data || []);
   }
 
   async function fetchTags() {
-    const { data } = await supabase.from('tags').select('*').eq('user_id', user.id).order('name');
+    const { data } = await supabase
+      .from('tags')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('name');
+
     setTags(data || []);
   }
 
-  async function handleSave() {
-    if (!name.trim()) return;
-    const payload = {
-      user_id: user.id,
-      name: name.trim(),
-      icon,
-      tag_id: tagId || null,
-      show_in_menu: showInMenu
-    };
-    if (editingId) {
-      await supabase.from('spaces').update(payload).eq('id', editingId);
-    } else {
-      await supabase.from('spaces').insert(payload);
-    }
+  function resetForm() {
     setName('');
     setIcon(DEFAULT_SPACE_ICON);
     setTagId('');
     setShowInMenu(true);
     setEditingId(null);
+  }
+
+  async function handleSave() {
+    const nextName = name.trim();
+
+    if (!nextName) {
+      setFeedback({ type: 'error', text: 'Name is required.' });
+      return;
+    }
+
+    const payload = {
+      user_id: user.id,
+      name: nextName,
+      icon: icon || DEFAULT_SPACE_ICON,
+      tag_id: tagId || null,
+      show_in_menu: showInMenu
+    };
+
+    const query = editingId
+      ? supabase.from('spaces').update(payload).eq('id', editingId)
+      : supabase.from('spaces').insert(payload);
+
+    const { error } = await query;
+
+    if (error) {
+      setFeedback({ type: 'error', text: error.message || 'Could not save space.' });
+      return;
+    }
+
+    setFeedback({ type: 'success', text: editingId ? 'Space updated.' : 'Space created.' });
+    resetForm();
     fetchSpaces();
   }
 
   async function handleDelete(id) {
-    await supabase.from('spaces').delete().eq('id', id);
+    const { error } = await supabase.from('spaces').delete().eq('id', id);
+
+    if (error) {
+      setFeedback({ type: 'error', text: error.message || 'Could not delete space.' });
+      return;
+    }
+
+    setFeedback({ type: 'success', text: 'Space deleted.' });
     fetchSpaces();
   }
 
@@ -64,48 +104,123 @@ export default function SpaceManager() {
     setIcon(space.icon);
     setTagId(space.tag_id || '');
     setShowInMenu(space.show_in_menu);
+    setFeedback({ type: '', text: '' });
   }
 
-  function copyShareLink(space) {
-    const link = `${window.location.origin}/shared/${space.share_link}`;
-    navigator.clipboard.writeText(link);
+  async function copyShareLink(space) {
+    try {
+      await navigator.clipboard.writeText(getSharedSpaceUrl(space.share_link));
+      setFeedback({ type: 'success', text: 'Link copied.' });
+    } catch {
+      setFeedback({ type: 'error', text: 'Could not copy link.' });
+    }
   }
 
   return (
-    <div style={{ padding: '8px 16px' }}>
-      <div style={{ marginBottom: 12 }}>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-          <input type="text" value={icon} onChange={(e) => setIcon(e.target.value)} style={{ width: 40, textAlign: 'center', fontSize: 13 }} title="Icon (emoji)" />
-          <input type="text" placeholder="Space name" value={name} onChange={(e) => setName(e.target.value)} style={{ flex: 1, fontSize: 13 }} />
+    <div className="settings-tool">
+      <div className="settings-tool-form">
+        <div className="settings-tool-grid settings-tool-grid-compact">
+          <label className="settings-tool-field">
+            <span className="settings-tool-label">Icon</span>
+            <input
+              className="settings-tool-input icon"
+              type="text"
+              value={icon}
+              onChange={(event) => {
+                setIcon(event.target.value);
+                setFeedback({ type: '', text: '' });
+              }}
+              title="Icon"
+            />
+          </label>
+
+          <label className="settings-tool-field">
+            <span className="settings-tool-label">Name</span>
+            <input
+              className="settings-tool-input"
+              type="text"
+              placeholder="Space name"
+              value={name}
+              onChange={(event) => {
+                setName(event.target.value);
+                setFeedback({ type: '', text: '' });
+              }}
+            />
+          </label>
         </div>
-        <select value={tagId} onChange={(e) => setTagId(e.target.value)} style={{ width: '100%', marginBottom: 8, fontSize: 13 }}>
-          <option value="">Link to tag (optional)</option>
-          {tags.map((tag) => <option key={tag.id} value={tag.id}>{tag.name}</option>)}
-        </select>
-        <label style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-secondary)', marginBottom: 8, cursor: 'pointer' }}>
-          <input type="checkbox" checked={showInMenu} onChange={(e) => setShowInMenu(e.target.checked)} />
-          Show in sidebar menu
+
+        <label className="settings-tool-field">
+          <span className="settings-tool-label">Auto Tag</span>
+          <select
+            className="settings-tool-input"
+            value={tagId}
+            onChange={(event) => {
+              setTagId(event.target.value);
+              setFeedback({ type: '', text: '' });
+            }}
+          >
+            <option value="">None</option>
+            {tags.map((tag) => (
+              <option key={tag.id} value={tag.id}>{tag.name}</option>
+            ))}
+          </select>
         </label>
-        <button className="btn btn-primary" style={{ fontSize: 12, padding: '4px 12px', width: '100%' }} onClick={handleSave}>
-          {editingId ? 'Update' : 'Create'} Space
-        </button>
-        {editingId && <button className="btn btn-ghost" style={{ fontSize: 12, width: '100%', marginTop: 4 }} onClick={() => { setEditingId(null); setName(''); }}>Cancel</button>}
+
+        <label className="settings-tool-toggle">
+          <input
+            type="checkbox"
+            checked={showInMenu}
+            onChange={(event) => {
+              setShowInMenu(event.target.checked);
+              setFeedback({ type: '', text: '' });
+            }}
+          />
+          Show in sidebar
+        </label>
+
+        {feedback.text && (
+          <p className={`settings-tool-note ${feedback.type}`}>{feedback.text}</p>
+        )}
+
+        <div className="settings-tool-actions">
+          <button className="btn btn-primary" onClick={handleSave}>
+            {editingId ? 'Save' : 'Create'}
+          </button>
+          {editingId && (
+            <button className="btn btn-ghost" onClick={resetForm}>
+              Cancel
+            </button>
+          )}
+        </div>
       </div>
-      <div style={{ borderTop: '1px solid var(--border)', paddingTop: 8 }}>
+
+      <div className="settings-tool-list">
         {spaces.map((space) => (
-          <div key={space.id} style={{ padding: '6px 0', borderBottom: '1px solid var(--border-light)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 14 }}>{space.icon} {space.name}</span>
-              <div style={{ display: 'flex', gap: 4 }}>
-                <button onClick={() => copyShareLink(space)} style={{ fontSize: 11, color: 'var(--accent)', cursor: 'pointer' }}>Copy Share Link</button>
-                <button onClick={() => startEdit(space)} style={{ fontSize: 11, color: 'var(--text-muted)', cursor: 'pointer' }}>Edit</button>
-                <button onClick={() => handleDelete(space.id)} style={{ fontSize: 11, color: 'var(--danger)', cursor: 'pointer' }}>&times;</button>
+          <div key={space.id} className="settings-tool-item">
+            <div className="settings-tool-main">
+              <div className="settings-tool-title-row">
+                <span className="settings-tool-name">{space.icon} {space.name}</span>
+                {!space.show_in_menu && <span className="settings-tool-chip">Hidden</span>}
               </div>
+              {space.tags?.name && (
+                <div className="settings-tool-meta">Auto tag: {space.tags.name}</div>
+              )}
             </div>
-            {space.tags && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Tag: {space.tags.name}</span>}
+
+            <div className="settings-tool-item-actions">
+              <SettingsItemMenu
+                items={[
+                  { label: 'Open', onSelect: () => navigate(`/space/${space.id}`) },
+                  { label: 'Copy Link', onSelect: () => copyShareLink(space) },
+                  { label: 'Edit', onSelect: () => startEdit(space) },
+                  { label: 'Delete', danger: true, onSelect: () => handleDelete(space.id) }
+                ]}
+              />
+            </div>
           </div>
         ))}
-        {spaces.length === 0 && <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center' }}>No spaces yet</p>}
+
+        {spaces.length === 0 && <p className="settings-tool-empty">No spaces yet.</p>}
       </div>
     </div>
   );

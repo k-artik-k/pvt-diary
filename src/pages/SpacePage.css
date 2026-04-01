@@ -4,21 +4,44 @@
   padding: 12px 24px 48px;
 }
 
-.space-page-card {
-  width: min(100%, 960px);
-  margin: 0 auto;
-  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 18px 20px;
-}
-
 .space-page-header {
+  width: min(100%, var(--page-content-max));
+  margin: 0 auto 18px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.space-page-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.space-page-back {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  border: none;
+  background: transparent;
+  transition: background var(--transition), color var(--transition);
+}
+
+.space-page-back:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.space-page-heading-copy {
+  min-width: 0;
 }
 
 .space-page-title {
@@ -27,26 +50,70 @@
   margin: 0;
 }
 
+.space-page-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.space-page-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.space-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .space-page-feed {
   width: min(100%, var(--page-content-max));
   margin: 0 auto;
 }
 
 .space-page-empty {
-  margin-top: 8px;
-  text-align: center;
-  padding: 44px 20px;
+  padding: 36px 0 0;
+  text-align: left;
   color: var(--text-muted);
-  border: 1px dashed var(--border);
-  border-radius: var(--radius-lg);
-  background: rgba(255,255,255,0.01);
+  border-top: 1px solid var(--border);
+}
+
+.space-page-empty h2 {
+  font-size: 18px;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.space-page-empty p {
+  font-size: 13px;
+  margin-bottom: 14px;
 }
 
 .space-page-loading {
   text-align: center;
-  padding: 20px;
+  padding: 20px 0;
   color: var(--text-muted);
   font-size: 13px;
+}
+
+.space-page-error {
+  width: min(100%, var(--page-content-max));
+  margin: 0 auto;
+  padding: 22px 0;
+}
+
+.space-page-error-copy {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.6;
 }
 
 @media (max-width: 768px) {
@@ -61,9 +128,5 @@
 
   .space-page-title {
     font-size: 22px;
-  }
-
-  .space-page-card {
-    padding: 16px 18px;
   }
 }

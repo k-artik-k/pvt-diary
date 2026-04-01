@@ -149,9 +149,20 @@ create table if not exists public.space_members (
 alter table public.space_members enable row level security;
 
 drop policy if exists "Space owners can manage members" on public.space_members;
+drop policy if exists "Users can view related memberships" on public.space_members;
 
 create policy "Space owners can manage members"
   on public.space_members for all using (auth.uid() = added_by);
+
+create policy "Users can view related memberships"
+  on public.space_members for select using (
+    auth.uid() = added_by
+    or member_username in (
+      select p.username
+      from public.profiles p
+      where p.id = auth.uid()
+    )
+  );
 
 drop policy if exists "Users can view own spaces" on public.spaces;
 drop policy if exists "Users can view accessible spaces" on public.spaces;

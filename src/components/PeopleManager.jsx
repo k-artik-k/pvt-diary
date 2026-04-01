@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
+import { getSharedSpaceUrl } from '../utils/appLinks';
+import './SettingsManager.css';
 
 export default function PeopleManager() {
   const { user } = useAuth();
@@ -11,9 +13,20 @@ export default function PeopleManager() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
+  const selectedSpaceItem = useMemo(
+    () => spaces.find((space) => space.id === selectedSpace) || null,
+    [spaces, selectedSpace]
+  );
+
   const fetchSpaces = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase.from('spaces').select('id, name, icon').eq('user_id', user.id).order('name');
+
+    const { data } = await supabase
+      .from('spaces')
+      .select('id, name, icon, share_link')
+      .eq('user_id', user.id)
+      .order('name');
+
     setSpaces(data || []);
   }, [user]);
 
@@ -22,7 +35,13 @@ export default function PeopleManager() {
       setMembers([]);
       return;
     }
-    const { data } = await supabase.from('space_members').select('*').eq('space_id', selectedSpace).order('created_at');
+
+    const { data } = await supabase
+      .from('space_members')
+      .select('*')
+      .eq('space_id', selectedSpace)
+      .order('created_at');
+
     setMembers(data || []);
   }, [selectedSpace]);
 
@@ -33,6 +52,17 @@ export default function PeopleManager() {
   useEffect(() => {
     fetchMembers();
   }, [fetchMembers]);
+
+  useEffect(() => {
+    if (!selectedSpace && spaces.length > 0) {
+      setSelectedSpace(spaces[0].id);
+      return;
+    }
+
+    if (selectedSpace && !spaces.some((space) => space.id === selectedSpace)) {
+      setSelectedSpace(spaces[0]?.id || '');
+    }
+  }, [selectedSpace, spaces]);
 
   async function handleAdd() {
     const username = newUsername.trim();
@@ -48,7 +78,7 @@ export default function PeopleManager() {
       .maybeSingle();
 
     if (!existingUser) {
-      setError('Username not found. Use their app username, not their email.');
+      setError('Username not found.');
       return;
     }
 
@@ -64,7 +94,7 @@ export default function PeopleManager() {
     }
 
     setNewUsername('');
-    setMessage('Member added. They can now open the shared space link and read posts in this space.');
+    setMessage('Person added.');
     fetchMembers();
   }
 
@@ -73,49 +103,89 @@ export default function PeopleManager() {
     fetchMembers();
   }
 
+  async function handleCopyLink() {
+    if (!selectedSpaceItem?.share_link) return;
+
+    try {
+      await navigator.clipboard.writeText(getSharedSpaceUrl(selectedSpaceItem.share_link));
+      setMessage('Link copied.');
+      setError('');
+    } catch {
+      setError('Could not copy link.');
+      setMessage('');
+    }
+  }
+
   return (
-    <div style={{ padding: '8px 16px' }}>
-      <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 10 }}>
-        Add the person&apos;s app username here. Shared posts only appear when you publish the post into that space.
-      </p>
-
-      <select value={selectedSpace} onChange={(e) => setSelectedSpace(e.target.value)} style={{ width: '100%', marginBottom: 8, fontSize: 13 }}>
-        <option value="">Select a space</option>
-        {spaces.map((space) => <option key={space.id} value={space.id}>{space.icon} {space.name}</option>)}
-      </select>
-
-      {selectedSpace && (
-        <>
-          <div style={{ display: 'flex', gap: 4, marginBottom: 8 }}>
-            <input
-              type="text"
-              placeholder="Username"
-              value={newUsername}
-              onChange={(e) => {
-                setNewUsername(e.target.value);
-                setError('');
-                setMessage('');
-              }}
-              onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-              style={{ flex: 1, fontSize: 13 }}
-            />
-            <button className="btn btn-primary" style={{ fontSize: 12, padding: '4px 10px' }} onClick={handleAdd}>Add</button>
-          </div>
-
-          {error && <p style={{ fontSize: 12, color: 'var(--danger)', marginBottom: 8 }}>{error}</p>}
-          {message && <p style={{ fontSize: 12, color: 'var(--success)', marginBottom: 8 }}>{message}</p>}
-
-          <div>
-            {members.map((member) => (
-              <div key={member.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' }}>
-                <span style={{ fontSize: 13 }}>{member.member_username}</span>
-                <button onClick={() => handleRemove(member.id)} style={{ fontSize: 12, color: 'var(--danger)', cursor: 'pointer' }}>Remove</button>
-              </div>
+    <div className="settings-tool">
+      <div className="settings-tool-form">
+        <div className="settings-tool-row">
+          <select
+            className="settings-tool-input"
+            value={selectedSpace}
+            onChange={(event) => {
+              setSelectedSpace(event.target.value);
+              setError('');
+              setMessage('');
+            }}
+          >
+            <option value="">Select a space</option>
+            {spaces.map((space) => (
+              <option key={space.id} value={space.id}>{space.icon} {space.name}</option>
             ))}
-            {members.length === 0 && <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center' }}>No members</p>}
+          </select>
+
+          {selectedSpaceItem && (
+            <button className="btn btn-ghost" onClick={handleCopyLink}>
+              Copy Link
+            </button>
+          )}
+        </div>
+
+        {selectedSpace && (
+          <>
+            <div className="settings-tool-row">
+              <input
+                className="settings-tool-input"
+                type="text"
+                placeholder="Username"
+                value={newUsername}
+                onChange={(event) => {
+                  setNewUsername(event.target.value);
+                  setError('');
+                  setMessage('');
+                }}
+                onKeyDown={(event) => event.key === 'Enter' && handleAdd()}
+              />
+              <button className="btn btn-primary" onClick={handleAdd}>Add</button>
+            </div>
+
+            <p className="settings-tool-note">Use the username, not email.</p>
+          </>
+        )}
+
+        {error && <p className="settings-tool-note error">{error}</p>}
+        {message && <p className="settings-tool-note success">{message}</p>}
+      </div>
+
+      <div className="settings-tool-list">
+        {members.map((member) => (
+          <div key={member.id} className="settings-tool-item">
+            <div className="settings-tool-main">
+              <span className="settings-tool-name">{member.member_username}</span>
+            </div>
+            <div className="settings-tool-item-actions">
+              <button className="settings-tool-link danger" onClick={() => handleRemove(member.id)}>
+                Remove
+              </button>
+            </div>
           </div>
-        </>
-      )}
+        ))}
+
+        {selectedSpace && members.length === 0 && <p className="settings-tool-empty">No people yet.</p>}
+        {!selectedSpace && spaces.length > 0 && <p className="settings-tool-empty">Choose a space.</p>}
+        {spaces.length === 0 && <p className="settings-tool-empty">Create a space first.</p>}
+      </div>
     </div>
   );
 }

@@ -10,6 +10,28 @@ import './RichTextEditor.css';
 export default function RichTextEditor({ content, onChange, isMarkdown, onToggleMode, placeholder = 'Start writing...' }) {
   const { user } = useAuth();
 
+  function renderModeToggle(markdownActive) {
+    return (
+      <div className={`editor-mode-toggle ${markdownActive ? 'markdown' : 'rich'}`}>
+        <span className="editor-mode-thumb" />
+        <button
+          type="button"
+          className={`editor-mode-option ${!markdownActive ? 'active' : ''}`}
+          onClick={() => onToggleMode(false)}
+        >
+          RT
+        </button>
+        <button
+          type="button"
+          className={`editor-mode-option ${markdownActive ? 'active' : ''}`}
+          onClick={() => onToggleMode(true)}
+        >
+          MD
+        </button>
+      </div>
+    );
+  }
+
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -48,8 +70,7 @@ export default function RichTextEditor({ content, onChange, isMarkdown, onToggle
       <div className="rich-editor-wrapper">
         <div className="rich-editor-toolbar">
           <div className="toolbar-right">
-            <button className="editor-toggle" onClick={() => onToggleMode(false)}>Rich Text</button>
-            <button className="editor-toggle active">Markdown</button>
+            {renderModeToggle(true)}
           </div>
         </div>
         <textarea
@@ -148,8 +169,7 @@ export default function RichTextEditor({ content, onChange, isMarkdown, onToggle
         </button>
 
         <div className="toolbar-right">
-          <button className="editor-toggle active">Rich Text</button>
-          <button className="editor-toggle" onClick={() => onToggleMode(true)}>Markdown</button>
+          {renderModeToggle(false)}
         </div>
       </div>
       <div className="rich-editor-content">

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import PostCard from '../components/PostCard';
+import { getSharedSpaceUrl } from '../utils/appLinks';
 import './SpacePage.css';
 
 const PAGE_SIZE = 20;
@@ -17,6 +18,7 @@ export default function SpacePage() {
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
   const [error, setError] = useState('');
+  const [copied, setCopied] = useState(false);
   const loadingRef = useRef(null);
 
   const fetchSpace = useCallback(async () => {
@@ -24,7 +26,7 @@ export default function SpacePage() {
 
     const { data } = await supabase
       .from('spaces')
-      .select('id, name, icon, tag_id, user_id, tags(name)')
+      .select('id, name, icon, user_id, share_link')
       .eq('id', id)
       .maybeSingle();
 
@@ -40,29 +42,13 @@ export default function SpacePage() {
   const fetchPosts = useCallback(async (pageNum) => {
     if (!space) return [];
 
-    let query = supabase
+    const { data } = await supabase
       .from('posts')
-      .select('*, post_tags(tag_id, tags(*))')
-      .eq('user_id', space.user_id)
+      .select('*, spaces(id, name, icon, share_link), post_tags(tag_id, tags(*))')
+      .eq('space_id', id)
       .order('created_at', { ascending: false })
       .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
 
-    if (space.tag_id) {
-      const { data: taggedPostIds } = await supabase
-        .from('post_tags')
-        .select('post_id')
-        .eq('tag_id', space.tag_id);
-
-      const ids = (taggedPostIds || []).map((item) => item.post_id);
-      if (ids.length === 0) {
-        return [];
-      }
-      query = query.in('id', ids);
-    } else {
-      query = query.eq('space_id', id);
-    }
-
-    const { data } = await query;
     return data || [];
   }, [id, space]);
 
@@ -94,7 +80,7 @@ export default function SpacePage() {
   }, [space, fetchPosts]);
 
   useEffect(() => {
-    if (!loadingRef.current) return;
+    if (!loadingRef.current) return undefined;
 
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting && hasMore && !loading) {
@@ -113,6 +99,12 @@ export default function SpacePage() {
     return () => observer.disconnect();
   }, [hasMore, loading, page, fetchPosts]);
 
+  useEffect(() => {
+    if (!copied) return undefined;
+    const timeout = window.setTimeout(() => setCopied(false), 1800);
+    return () => window.clearTimeout(timeout);
+  }, [copied]);
+
   function getPostTags(post) {
     return post.post_tags?.map((item) => item.tags).filter(Boolean) || [];
   }
@@ -121,15 +113,50 @@ export default function SpacePage() {
     setPosts((prev) => prev.filter((post) => post.id !== postId));
   }
 
+  function handlePostUpdated(updatedPost, updatedTags) {
+    setPosts((prev) => {
+      if (updatedPost.space_id !== id) {
+        return prev.filter((post) => post.id !== updatedPost.id);
+      }
+
+      return prev.map((post) => (
+        post.id === updatedPost.id
+          ? {
+              ...updatedPost,
+              post_tags: updatedTags.map((tag) => ({ tag_id: tag.id, tags: tag }))
+            }
+          : post
+      ));
+    });
+  }
+
+  async function handleCopyLink() {
+    if (!space?.share_link) return;
+
+    try {
+      await navigator.clipboard.writeText(getSharedSpaceUrl(space.share_link));
+      setCopied(true);
+    } catch {}
+  }
+
   const isOwner = space?.user_id === user?.id;
 
   if (error) {
     return (
       <div className="space-page">
-        <div className="space-page-card">
-          <p className="space-page-kicker">Space</p>
+        <div className="space-page-error">
           <h1 className="space-page-title">Unavailable</h1>
-          <p className="space-page-description">{error}</p>
+          <p className="space-page-error-copy">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading && !space) {
+    return (
+      <div className="space-page">
+        <div className="space-page-feed">
+          <div className="space-page-loading">Loading...</div>
         </div>
       </div>
     );
@@ -137,31 +164,57 @@ export default function SpacePage() {
 
   return (
     <div className="space-page">
-      <div className="space-page-card space-page-header">
-        <h1 className="space-page-title">{space?.icon} {space?.name || 'Space'}</h1>
+      <div className="space-page-header">
+        <div className="space-page-heading">
+          <button className="space-page-back" onClick={() => navigate(-1)} aria-label="Back">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M19 12H5M12 19l-7-7 7-7" />
+            </svg>
+          </button>
+
+          <div className="space-page-heading-copy">
+            <h1 className="space-page-title">{space?.icon} {space?.name || 'Space'}</h1>
+            <div className="space-page-meta">
+              <span className="space-page-chip">{posts.length} {posts.length === 1 ? 'post' : 'posts'}</span>
+              <span className="space-page-chip">{isOwner ? 'Owner' : 'Shared'}</span>
+            </div>
+          </div>
+        </div>
 
         {isOwner && (
-          <button
-            className="btn btn-primary"
-            style={{ fontSize: 13, padding: '8px 14px' }}
-            onClick={() => navigate(`/create?space=${id}`)}
-          >
-            + New Post
-          </button>
+          <div className="space-page-actions">
+            <button className="btn btn-ghost" onClick={handleCopyLink}>
+              {copied ? 'Copied' : 'Copy Link'}
+            </button>
+            <button className="btn btn-primary" onClick={() => navigate(`/create?space=${id}`)}>
+              New Post
+            </button>
+          </div>
         )}
       </div>
 
       <div className="space-page-feed">
         {posts.map((post, index) => (
           <div key={post.id}>
-            <PostCard post={post} tags={getPostTags(post)} onDeleted={handlePostDeleted} />
+            <PostCard
+              post={post}
+              tags={getPostTags(post)}
+              onDeleted={handlePostDeleted}
+              onUpdated={handlePostUpdated}
+            />
             {index < posts.length - 1 && <hr className="post-separator" />}
           </div>
         ))}
 
         {!loading && posts.length === 0 && (
           <div className="space-page-empty">
-            <p>No posts in this space yet.</p>
+            <h2>No posts yet</h2>
+            <p>{isOwner ? 'Start with a new post.' : 'Nothing shared here yet.'}</p>
+            {isOwner && (
+              <button className="btn btn-primary" onClick={() => navigate(`/create?space=${id}`)}>
+                New Post
+              </button>
+            )}
           </div>
         )}
 

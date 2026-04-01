@@ -2,7 +2,7 @@
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
-  width: 248px;
+  width: 238px;
   background: var(--bg-surface);
   border-radius: var(--radius-lg);
   padding: 6px 0;
@@ -10,43 +10,8 @@
   box-shadow: 0 12px 40px rgba(0,0,0,0.5);
 }
 
-.profile-menu-panel {
-  width: 320px;
-  max-height: 70vh;
-  overflow-y: auto;
-}
-
-.profile-menu-panel-header {
-  padding: 8px 16px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.profile-menu-back-btn {
-  width: 24px;
-  height: 24px;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-secondary);
-  transition: background var(--transition), color var(--transition);
-}
-
-.profile-menu-back-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text);
-}
-
 .profile-menu-profile {
-  padding: 10px 14px 8px;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
+  padding: 12px 14px 10px;
 }
 
 .profile-menu-label {
@@ -65,62 +30,11 @@
   word-break: break-word;
 }
 
-.profile-menu-username-editor {
-  padding: 0 14px 10px;
-}
-
-.profile-menu-username-input {
-  width: 100%;
-  font-size: 13px;
-}
-
-.profile-menu-inline-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.profile-menu-inline-btn {
-  font-size: 12px;
-  color: var(--text-muted);
-  transition: color var(--transition);
-}
-
-.profile-menu-inline-btn:hover {
-  color: var(--text);
-}
-
-.profile-menu-save-btn {
-  padding: 6px 10px;
-  border-radius: var(--radius);
-  background: var(--bg-elevated);
-  color: var(--text);
-  font-size: 12px;
-  transition: background var(--transition), color var(--transition);
-}
-
-.profile-menu-save-btn:hover {
-  background: var(--bg-hover);
-}
-
-.profile-menu-save-btn:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-
-.profile-menu-error {
-  margin-top: 8px;
-  font-size: 12px;
-  color: var(--danger);
-}
-
 .profile-menu-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 7px 14px;
+  padding: 8px 14px;
   font-size: 13px;
   color: var(--text-secondary);
   cursor: pointer;

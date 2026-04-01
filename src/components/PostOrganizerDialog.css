@@ -1,0 +1,138 @@
+.post-organizer-dialog {
+  width: min(92vw, 620px);
+  max-width: 620px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.post-organizer-header {
+  padding: 22px 22px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.post-organizer-kicker {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 8px;
+}
+
+.post-organizer-title {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: -0.03em;
+}
+
+.post-organizer-subtitle {
+  margin-top: 6px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.post-organizer-body {
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.post-organizer-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.post-organizer-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.post-organizer-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.post-organizer-count {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.post-organizer-select {
+  width: 100%;
+}
+
+.post-organizer-hint {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.post-organizer-tag-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.post-organizer-tag-option {
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.post-organizer-tag-option:hover,
+.post-organizer-tag-option.selected {
+  border-color: rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.03);
+}
+
+.post-organizer-tag-option .tag-pill {
+  pointer-events: none;
+}
+
+.post-organizer-create-row {
+  display: flex;
+  gap: 10px;
+}
+
+.post-organizer-create-row input {
+  flex: 1;
+}
+
+.post-organizer-error {
+  color: var(--danger);
+  font-size: 12px;
+}
+
+.post-organizer-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 0 22px 22px;
+}
+
+@media (max-width: 640px) {
+  .post-organizer-header,
+  .post-organizer-body,
+  .post-organizer-footer {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .post-organizer-create-row,
+  .post-organizer-footer {
+    flex-direction: column;
+  }
+
+  .post-organizer-footer .btn,
+  .post-organizer-create-row .btn {
+    width: 100%;
+  }
+}

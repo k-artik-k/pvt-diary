@@ -18,7 +18,7 @@ export default function Home({ searchQuery = '' }) {
   const fetchPosts = useCallback(async (pageNum, search = '') => {
     let query = supabase
       .from('posts')
-      .select('*, post_tags(tag_id, tags(*))')
+      .select('*, spaces(id, name, icon, share_link), post_tags(tag_id, tags(*))')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
@@ -75,6 +75,17 @@ export default function Home({ searchQuery = '' }) {
     setPosts(prev => prev.filter(post => post.id !== postId));
   }
 
+  function handlePostUpdated(updatedPost, updatedTags) {
+    setPosts((prev) => prev.map((post) => (
+      post.id === updatedPost.id
+        ? {
+            ...updatedPost,
+            post_tags: updatedTags.map((tag) => ({ tag_id: tag.id, tags: tag }))
+          }
+        : post
+    )));
+  }
+
   if (!loading && posts.length === 0) {
     return (
       <div className="home-page">
@@ -91,7 +102,12 @@ export default function Home({ searchQuery = '' }) {
       <div className="home-feed">
         {posts.map((post, i) => (
           <div key={post.id}>
-            <PostCard post={post} tags={getPostTags(post)} onDeleted={handlePostDeleted} />
+            <PostCard
+              post={post}
+              tags={getPostTags(post)}
+              onDeleted={handlePostDeleted}
+              onUpdated={handlePostUpdated}
+            />
             {i < posts.length - 1 && <hr className="post-separator" />}
           </div>
         ))}

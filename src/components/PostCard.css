@@ -53,6 +53,17 @@
   flex-wrap: wrap;
 }
 
+.post-card-space {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-elevated);
+}
+
 .post-card-meta {
   font-size: 11px;
   color: var(--text-muted);

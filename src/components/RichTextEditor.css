@@ -47,18 +47,49 @@
   gap: 2px;
 }
 
-.editor-toggle {
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: var(--radius-pill);
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  border: none;
+.editor-mode-toggle {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: center;
+  min-width: 68px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
 }
 
-.editor-toggle.active {
+.editor-mode-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: calc(50% - 2px);
+  height: calc(100% - 4px);
   background: var(--accent);
+  border-radius: 999px;
+  transition: transform var(--transition);
+}
+
+.editor-mode-toggle.markdown .editor-mode-thumb {
+  transform: translateX(100%);
+}
+
+.editor-mode-option {
+  position: relative;
+  z-index: 1;
+  width: auto !important;
+  min-width: 0 !important;
+  height: 22px !important;
+  padding: 0 9px !important;
+  border-radius: 999px !important;
+  background: transparent !important;
+  color: var(--text-muted);
+  font-size: 10px !important;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.editor-mode-option.active {
   color: #fff;
 }
 

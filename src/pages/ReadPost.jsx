@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import RichTextEditor from '../components/RichTextEditor';
@@ -7,18 +7,22 @@ import TagPill from '../components/TagPill';
 import ConfirmDialog from '../components/ConfirmDialog';
 import PassphraseDialog from '../components/PassphraseDialog';
 import PostActionsMenu from '../components/PostActionsMenu';
+import PostOrganizerDialog from '../components/PostOrganizerDialog';
 import { sanitizeHTML } from '../utils/sanitize';
 import { formatDate } from '../utils/dateHelpers';
+import { duplicatePostWithTags } from '../utils/postActions';
+import { getPostShareUrl } from '../utils/appLinks';
 import './ReadPost.css';
 
 export default function ReadPost() {
   const { id } = useParams();
   const { user, profile } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const shouldStartEditing = searchParams.get('edit') === '1';
 
   const [post, setPost] = useState(null);
   const [tags, setTags] = useState([]);
-  const [allTags, setAllTags] = useState([]);
   const [activity, setActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -27,6 +31,7 @@ export default function ReadPost() {
   const [editBody, setEditBody] = useState('');
   const [showDelete, setShowDelete] = useState(false);
   const [showPassphrase, setShowPassphrase] = useState(false);
+  const [showOrganizer, setShowOrganizer] = useState(false);
   const [decryptedBody, setDecryptedBody] = useState(null);
   const [isOwner, setIsOwner] = useState(false);
   const [allPostIds, setAllPostIds] = useState([]);
@@ -34,7 +39,7 @@ export default function ReadPost() {
   const fetchPost = useCallback(async () => {
     const { data } = await supabase
       .from('posts')
-      .select('*, post_tags(tag_id, tags(*))')
+      .select('*, spaces(id, name, icon, share_link), post_tags(tag_id, tags(*))')
       .eq('id', id)
       .single();
 
@@ -44,7 +49,9 @@ export default function ReadPost() {
       setEditSubtitle(data.subtitle);
       setEditBody(data.body);
       setTags(data.post_tags?.map((item) => item.tags).filter(Boolean) || []);
-      setIsOwner(data.user_id === user?.id);
+      const owner = data.user_id === user?.id;
+      setIsOwner(owner);
+      setEditing(owner && shouldStartEditing);
 
       if (data.passphrase_hash) {
         setDecryptedBody(null);
@@ -60,17 +67,11 @@ export default function ReadPost() {
       }
     }
     setLoading(false);
-  }, [id, user, profile]);
+  }, [id, user, profile, shouldStartEditing]);
 
   useEffect(() => {
     fetchPost();
   }, [fetchPost]);
-
-  useEffect(() => {
-    if (user) {
-      supabase.from('tags').select('*').eq('user_id', user.id).order('name').then(({ data }) => setAllTags(data || []));
-    }
-  }, [user]);
 
   useEffect(() => {
     if (post && isOwner) {
@@ -145,13 +146,19 @@ export default function ReadPost() {
 
   async function handleSave() {
     const sanitized = post.is_markdown ? editBody : sanitizeHTML(editBody);
-    await supabase.from('posts').update({
+    const { data } = await supabase.from('posts').update({
       title: editTitle.trim(),
       subtitle: editSubtitle.trim(),
       body: sanitized
-    }).eq('id', id);
+    }).eq('id', id).select('*, spaces(id, name, icon, share_link), post_tags(tag_id, tags(*))').single();
+
+    if (data) {
+      setPost(data);
+      setTags(data.post_tags?.map((item) => item.tags).filter(Boolean) || []);
+    }
+
+    navigate(`/post/${id}`, { replace: true });
     setEditing(false);
-    fetchPost();
   }
 
   async function handleDelete() {
@@ -159,18 +166,43 @@ export default function ReadPost() {
     navigate('/');
   }
 
-  async function togglePostTag(tag) {
-    const exists = tags.find((item) => item.id === tag.id);
-    if (exists) {
-      await supabase.from('post_tags').delete().eq('post_id', id).eq('tag_id', tag.id);
-    } else {
-      await supabase.from('post_tags').insert({ post_id: id, tag_id: tag.id });
+  async function handleToggleDraft() {
+    if (!post) return;
+
+    const { data } = await supabase
+      .from('posts')
+      .update({ is_draft: !post.is_draft })
+      .eq('id', post.id)
+      .select('*, spaces(id, name, icon, share_link)')
+      .single();
+
+    if (data) {
+      setPost((prev) => ({ ...prev, ...data }));
     }
-    fetchPost();
+  }
+
+  async function handleDuplicate() {
+    if (!post) return;
+
+    const { data } = await duplicatePostWithTags(post, tags);
+    if (data?.id) {
+      navigate(`/post/${data.id}?edit=1`);
+    }
+  }
+
+  function handlePostUpdated(updatedPost, updatedTags) {
+    setPost(updatedPost);
+    setTags(updatedTags);
   }
 
   if (loading) return <div className="read-post-page"><p style={{ color: 'var(--text-muted)' }}>Loading...</p></div>;
-  if (!post) return <div className="read-post-page"><p style={{ color: 'var(--text-muted)' }}>Post not found</p></div>;
+  if (!post) {
+    return (
+      <div className="read-post-page">
+        <p style={{ color: 'var(--text-muted)' }}>This post is private or unavailable to your account.</p>
+      </div>
+    );
+  }
 
   if (post.passphrase_hash && !decryptedBody && !showPassphrase) {
     return (
@@ -180,7 +212,17 @@ export default function ReadPost() {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
           </button>
           <div className="read-post-nav-spacer" />
-          <PostActionsMenu postId={post.id} canDelete={isOwner} onDelete={() => setShowDelete(true)} />
+          <PostActionsMenu
+            postId={post.id}
+            shareUrl={getPostShareUrl(post)}
+            canManage={isOwner}
+            isDraft={post.is_draft}
+            onEdit={() => navigate(`/post/${post.id}?edit=1`)}
+            onOrganize={() => setShowOrganizer(true)}
+            onDuplicate={handleDuplicate}
+            onToggleDraft={handleToggleDraft}
+            onDelete={() => setShowDelete(true)}
+          />
         </div>
         <div className="read-post-locked">
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -215,19 +257,41 @@ export default function ReadPost() {
         </button>
         <div className="read-post-nav-actions">
           {isOwner && !editing && (
-            <button className="btn btn-ghost" style={{ fontSize: 13 }} onClick={() => setEditing(true)}>
+            <button className="btn btn-ghost" style={{ fontSize: 13 }} onClick={() => navigate(`/post/${post.id}?edit=1`, { replace: true })}>
               Edit
             </button>
           )}
           {editing && (
             <>
               <button className="btn btn-primary" style={{ fontSize: 13 }} onClick={handleSave}>Save</button>
-              <button className="btn btn-ghost" style={{ fontSize: 13 }} onClick={() => { setEditing(false); setEditTitle(post.title); setEditSubtitle(post.subtitle); setEditBody(displayBody); }}>
+              <button
+                className="btn btn-ghost"
+                style={{ fontSize: 13 }}
+                onClick={() => {
+                  navigate(`/post/${post.id}`, { replace: true });
+                  setEditing(false);
+                  setEditTitle(post.title);
+                  setEditSubtitle(post.subtitle);
+                  setEditBody(displayBody);
+                }}
+              >
                 Cancel
               </button>
             </>
           )}
-          {!editing && <PostActionsMenu postId={post.id} canDelete={isOwner} onDelete={() => setShowDelete(true)} />}
+          {!editing && (
+            <PostActionsMenu
+              postId={post.id}
+              shareUrl={getPostShareUrl(post)}
+              canManage={isOwner}
+              isDraft={post.is_draft}
+              onEdit={() => navigate(`/post/${post.id}?edit=1`, { replace: true })}
+              onOrganize={() => setShowOrganizer(true)}
+              onDuplicate={handleDuplicate}
+              onToggleDraft={handleToggleDraft}
+              onDelete={() => setShowDelete(true)}
+            />
+          )}
         </div>
       </div>
 
@@ -255,31 +319,18 @@ export default function ReadPost() {
                 name={tag.name}
                 pillColor={tag.pill_color}
                 textColor={tag.text_color}
-                onRemove={isOwner ? () => togglePostTag(tag) : undefined}
               />
             ))}
+            {post.spaces && (
+              <span className="read-post-space">
+                {post.spaces.icon} {post.spaces.name}
+              </span>
+            )}
             <span className="read-post-date">{formatDate(post.created_at)}</span>
             {post.is_draft && <span style={{ fontSize: 11, color: 'var(--text-muted)', background: 'var(--bg-elevated)', padding: '1px 8px', borderRadius: 'var(--radius-pill)' }}>Draft</span>}
           </div>
           <div className="read-post-body" dangerouslySetInnerHTML={{ __html: sanitizeHTML(displayBody) }} />
         </>
-      )}
-
-      {isOwner && !editing && (
-        <div style={{ marginTop: 12 }}>
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>Add tags:</p>
-          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-            {allTags.filter((tag) => !tags.find((existingTag) => existingTag.id === tag.id)).map((tag) => (
-              <TagPill
-                key={tag.id}
-                name={tag.name}
-                pillColor={tag.pill_color}
-                textColor={tag.text_color}
-                onClick={() => togglePostTag(tag)}
-              />
-            ))}
-          </div>
-        </div>
       )}
 
       {isOwner && activity.length > 0 && (
@@ -301,6 +352,15 @@ export default function ReadPost() {
           onCancel={() => setShowDelete(false)}
           confirmText="Delete"
           danger
+        />
+      )}
+
+      {showOrganizer && isOwner && post && (
+        <PostOrganizerDialog
+          post={post}
+          tags={tags}
+          onClose={() => setShowOrganizer(false)}
+          onSaved={handlePostUpdated}
         />
       )}
     </div>

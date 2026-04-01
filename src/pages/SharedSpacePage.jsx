@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 
 export default function SharedSpacePage() {
   const { shareLink } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [status, setStatus] = useState('loading');
+  const sharedPostId = searchParams.get('post');
 
   const resolveShareLink = useCallback(async () => {
     const { data } = await supabase
@@ -15,12 +17,26 @@ export default function SharedSpacePage() {
       .maybeSingle();
 
     if (data?.id) {
+      if (sharedPostId) {
+        const { data: postData } = await supabase
+          .from('posts')
+          .select('id')
+          .eq('id', sharedPostId)
+          .eq('space_id', data.id)
+          .maybeSingle();
+
+        if (postData?.id) {
+          navigate(`/post/${sharedPostId}`, { replace: true });
+          return;
+        }
+      }
+
       navigate(`/space/${data.id}`, { replace: true });
       return;
     }
 
     setStatus('unavailable');
-  }, [navigate, shareLink]);
+  }, [navigate, shareLink, sharedPostId]);
 
   useEffect(() => {
     resolveShareLink();
@@ -29,20 +45,17 @@ export default function SharedSpacePage() {
   if (status === 'loading') {
     return (
       <div style={{ width: 'min(100%, 760px)', margin: '0 auto', padding: '24px', color: 'var(--text-muted)' }}>
-        Opening shared space...
+        Opening...
       </div>
     );
   }
 
   return (
     <div style={{ width: 'min(100%, 760px)', margin: '0 auto', padding: '24px' }}>
-      <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: 24, boxShadow: 'var(--shadow-sm)' }}>
-        <p style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
-          Shared Space
-        </p>
-        <h1 style={{ fontSize: 24, lineHeight: 1.2, marginBottom: 10 }}>This space is not available to your account yet.</h1>
-        <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-          Ask the owner to add your app username in <strong>Profile &gt; People</strong>, then open the link again.
+      <div style={{ padding: '18px 0', borderTop: '1px solid var(--border)' }}>
+        <h1 style={{ fontSize: 22, lineHeight: 1.2, marginBottom: 8 }}>Unavailable</h1>
+        <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          Ask the owner to add your username, then try again.
         </p>
       </div>
     </div>

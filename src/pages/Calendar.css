@@ -9,21 +9,25 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 22px;
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
 }
 
 .calendar-header h1 {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
 }
 
 .calendar-year-picker select {
   min-width: 104px;
-  padding: 10px 14px;
-  font-size: 14px;
-  background: var(--bg-elevated);
+  padding: 9px 12px;
+  font-size: 13px;
+  background: transparent;
   border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
 }
 
 @media (max-width: 768px) {

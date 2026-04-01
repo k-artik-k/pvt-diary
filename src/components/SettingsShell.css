@@ -1,0 +1,138 @@
+.settings-page {
+  width: min(100%, 1080px);
+  margin: 0 auto;
+  padding: 12px 24px 48px;
+}
+
+.settings-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  width: min(100%, 960px);
+  margin: 0 auto 18px;
+}
+
+.settings-back-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: background var(--transition), color var(--transition);
+}
+
+.settings-back-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.settings-kicker {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 2px;
+}
+
+.settings-title {
+  font-size: 26px;
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+}
+
+.settings-description {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.settings-content {
+  width: min(100%, 960px);
+  margin: 0 auto;
+}
+
+.settings-card {
+  border-top: 1px solid var(--border);
+  padding: 16px 0 18px;
+}
+
+.settings-card:first-child {
+  padding-top: 0;
+  border-top: none;
+}
+
+.settings-card-title {
+  font-size: 17px;
+  margin-bottom: 3px;
+}
+
+.settings-card-copy {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin-bottom: 12px;
+}
+
+.settings-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.settings-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.settings-note {
+  font-size: 12px;
+  margin-top: 10px;
+  color: var(--text-muted);
+}
+
+.settings-note.error {
+  color: var(--danger);
+}
+
+.settings-note.success {
+  color: var(--success);
+}
+
+.settings-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+@media (max-width: 768px) {
+  .settings-page {
+    padding: 8px 16px 32px;
+  }
+
+  .settings-title {
+    font-size: 24px;
+  }
+
+  .settings-form-grid {
+    grid-template-columns: 1fr;
+  }
+}

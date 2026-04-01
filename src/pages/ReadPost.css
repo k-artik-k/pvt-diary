@@ -89,6 +89,17 @@
   color: var(--text-muted);
 }
 
+.read-post-space {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
 .read-post-body {
   width: 100%;
   max-width: var(--page-reading-max);

@@ -1,34 +1,74 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import TagPill from './TagPill';
 import ConfirmDialog from './ConfirmDialog';
 import PostActionsMenu from './PostActionsMenu';
+import PostOrganizerDialog from './PostOrganizerDialog';
 import { stripHTML } from '../utils/sanitize';
 import { getRelativeTime } from '../utils/dateHelpers';
+import { duplicatePostWithTags } from '../utils/postActions';
+import { getPostShareUrl } from '../utils/appLinks';
 import './PostCard.css';
 
-export default function PostCard({ post, tags = [], onDeleted }) {
+export default function PostCard({ post, tags = [], onDeleted, onUpdated }) {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [currentPost, setCurrentPost] = useState(post);
+  const [currentTags, setCurrentTags] = useState(tags);
   const [showDelete, setShowDelete] = useState(false);
-  const canDelete = user?.id === post.user_id;
+  const [showOrganizer, setShowOrganizer] = useState(false);
+  const canManage = user?.id === currentPost.user_id;
+
+  useEffect(() => {
+    setCurrentPost(post);
+  }, [post]);
+
+  useEffect(() => {
+    setCurrentTags(tags);
+  }, [tags]);
+
+  function handlePostUpdated(updatedPost, updatedTags = currentTags) {
+    setCurrentPost(updatedPost);
+    setCurrentTags(updatedTags);
+    onUpdated?.(updatedPost, updatedTags);
+  }
 
   async function handleDelete() {
-    await supabase.from('posts').delete().eq('id', post.id);
+    await supabase.from('posts').delete().eq('id', currentPost.id);
     setShowDelete(false);
-    onDeleted?.(post.id);
+    onDeleted?.(currentPost.id);
+  }
+
+  async function handleToggleDraft() {
+    const { data } = await supabase
+      .from('posts')
+      .update({ is_draft: !currentPost.is_draft })
+      .eq('id', currentPost.id)
+      .select('*, spaces(id, name, icon, share_link)')
+      .single();
+
+    if (data) {
+      handlePostUpdated(data, currentTags);
+    }
+  }
+
+  async function handleDuplicate() {
+    const { data } = await duplicatePostWithTags(currentPost, currentTags);
+    if (data?.id) {
+      navigate(`/post/${data.id}?edit=1`);
+    }
   }
 
   return (
     <>
-      <div className="post-card" onClick={() => navigate(`/post/${post.id}`)}>
+      <div className="post-card" onClick={() => navigate(`/post/${currentPost.id}`)}>
         <div className="post-card-header-row">
           <div className="post-card-title-wrap">
-            <h3 className="post-card-title">{post.title || 'Untitled'}</h3>
-            {post.is_draft && <span className="post-card-draft">Draft</span>}
-            {post.passphrase_hash && (
+            <h3 className="post-card-title">{currentPost.title || 'Untitled'}</h3>
+            {currentPost.is_draft && <span className="post-card-draft">Draft</span>}
+            {currentPost.passphrase_hash && (
               <span className="post-card-lock" title="Locked">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
@@ -37,22 +77,45 @@ export default function PostCard({ post, tags = [], onDeleted }) {
               </span>
             )}
           </div>
-          <PostActionsMenu postId={post.id} canDelete={canDelete} onDelete={() => setShowDelete(true)} />
+          <PostActionsMenu
+            postId={currentPost.id}
+            shareUrl={getPostShareUrl(currentPost)}
+            canManage={canManage}
+            isDraft={currentPost.is_draft}
+            onEdit={() => navigate(`/post/${currentPost.id}?edit=1`)}
+            onOrganize={() => setShowOrganizer(true)}
+            onDuplicate={handleDuplicate}
+            onToggleDraft={handleToggleDraft}
+            onDelete={() => setShowDelete(true)}
+          />
         </div>
-        {post.subtitle && <div className="post-card-subtitle">{post.subtitle}</div>}
-        {post.body && !post.passphrase_hash && (
-          <div className="post-card-body">{stripHTML(post.body)}</div>
+        {currentPost.subtitle && <div className="post-card-subtitle">{currentPost.subtitle}</div>}
+        {currentPost.body && !currentPost.passphrase_hash && (
+          <div className="post-card-body">{stripHTML(currentPost.body)}</div>
         )}
-        {post.passphrase_hash && (
+        {currentPost.passphrase_hash && (
           <div className="post-card-body" style={{ fontStyle: 'italic' }}>This post is locked</div>
         )}
         <div className="post-card-footer">
-          {tags.map(tag => (
+          {currentTags.map((tag) => (
             <TagPill key={tag.id} name={tag.name} pillColor={tag.pill_color} textColor={tag.text_color} />
           ))}
-          <span className="post-card-meta">{getRelativeTime(post.created_at)}</span>
+          {currentPost.spaces && (
+            <span className="post-card-space">
+              {currentPost.spaces.icon} {currentPost.spaces.name}
+            </span>
+          )}
+          <span className="post-card-meta">{getRelativeTime(currentPost.created_at)}</span>
         </div>
       </div>
+      {showOrganizer && canManage && (
+        <PostOrganizerDialog
+          post={currentPost}
+          tags={currentTags}
+          onClose={() => setShowOrganizer(false)}
+          onSaved={handlePostUpdated}
+        />
+      )}
       {showDelete && (
         <ConfirmDialog
           title="Delete Post"

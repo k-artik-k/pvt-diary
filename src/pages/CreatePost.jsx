@@ -165,15 +165,14 @@ export default function CreatePost() {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         </button>
         <div>
-          <span className="create-post-kicker">Compose</span>
-          <h1 className="create-post-heading">New Entry</h1>
+          <h1 className="create-post-heading">New Post</h1>
         </div>
       </div>
 
       <div className="create-post-shell">
         <div className="create-post-meta-grid">
           <div className="create-post-meta-card">
-            <label className="create-post-meta-label" htmlFor="post-space">Posting To</label>
+            <label className="create-post-meta-label" htmlFor="post-space">Space</label>
             <select
               id="post-space"
               className="create-post-space-select"
@@ -189,8 +188,8 @@ export default function CreatePost() {
             </select>
             <p className="create-post-meta-hint">
               {selectedSpace
-                ? `People added to ${selectedSpace.name} can read this post.`
-                : 'Keep this private, or choose a space to share it.'}
+                ? `Shared in ${selectedSpace.name}.`
+                : 'Private.'}
             </p>
           </div>
 
@@ -203,14 +202,14 @@ export default function CreatePost() {
               value={dateTag}
               onChange={(e) => setDateTag(e.target.value)}
             />
-            <p className="create-post-meta-hint">Optional. Used for the calendar view.</p>
+            <p className="create-post-meta-hint">Optional.</p>
           </div>
         </div>
 
         {selectedSpace && (
           <div className="create-post-space-banner">
             <span>{selectedSpace.icon}</span>
-            <span>Sharing in {selectedSpace.name}</span>
+            <span>{selectedSpace.name}</span>
           </div>
         )}
 
@@ -229,7 +228,7 @@ export default function CreatePost() {
           <input
             className="create-post-subtitle-input"
             type="text"
-            placeholder="Subtitle"
+            placeholder="Short note"
             value={subtitle}
             onChange={(e) => setSubtitle(e.target.value)}
           />
@@ -250,7 +249,7 @@ export default function CreatePost() {
               <div className="tags-dropdown-menu">
                 {allTags.length === 0 && (
                   <div style={{ padding: 8, fontSize: 12, color: 'var(--text-muted)', textAlign: 'center' }}>
-                    No tags yet. Create them in the profile menu.
+                    No tags yet.
                   </div>
                 )}
 
@@ -283,7 +282,7 @@ export default function CreatePost() {
             onChange={setBody}
             isMarkdown={isMarkdown}
             onToggleMode={setIsMarkdown}
-            placeholder="Start writing..."
+            placeholder="Write..."
           />
         </div>
 
@@ -307,7 +306,7 @@ export default function CreatePost() {
             )}
           </button>
           <button className="btn btn-ghost" onClick={() => handleSave(true)} disabled={saving}>
-            Save Draft
+            Draft
           </button>
           <button className="btn btn-primary" onClick={() => handleSave(false)} disabled={saving}>
             {saving ? 'Posting...' : 'Post'}
