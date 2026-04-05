@@ -2,13 +2,21 @@
 
 A private writing system for journaling, long-form notes, and controlled sharing.
 
----
+![login](screenshots/login.png)  
+  
+![home](screenshots/home.png)  
+  
+![people](screenshots/people.png)  
+  
+![pro update](screenshots/profile_update.png)  
+
+![profile menu](screenshots/profile_menu.png)
 
 Replace messy notes, scattered thoughts, and over-social writing apps with a space that actually feels personal.
 
 Pvt Diary is built around one idea. Writing should stay clean, structured, and private unless you choose otherwise.
 
----
+
 
 ## Overview
 
@@ -16,7 +24,7 @@ Pvt Diary combines personal journaling with structured organization and selectiv
 
 Every post is treated as a first-class piece of content. Spaces, tags, and people are built around it, not the other way around. The goal is to keep the experience minimal while still handling real use cases like grouping, sharing, and revisiting content over time.
 
----
+
 
 ## What you can do
 
@@ -26,7 +34,7 @@ Protect sensitive posts with a passphrase when needed. Pin important posts witho
 
 This works as a personal diary, a long-form thinking space, or even a lightweight shared environment for small groups.
 
----
+
 
 ## Core Experience
 
@@ -36,7 +44,7 @@ The main feed remains stable and readable. Pinned content does not interfere wit
 
 Everything revolves around ownership and controlled visibility.
 
----
+
 
 ## Tech
 
@@ -44,13 +52,13 @@ Built with React (Vite) on the frontend and Supabase on the backend.
 
 Supabase handles authentication, database, storage, and access control. Row Level Security is used to enforce who can see and modify data, so privacy is part of the system itself, not just the UI.
 
----
+
 
 ## Live
 
-`[Open the app](https://pvt-diary-app.vercel.app)`
+[Open the app](https://pvt-diary-app.vercel.app)
 
----
+
 
 ## Why this exists
 
@@ -60,8 +68,8 @@ This project was an attempt to build something that stays minimal even as conten
 
 It’s also my first full-stack project where I worked on both the frontend experience and the backend design together.
 
----
+
 
 ## Author
 
-Kartikeya
+Kartikeya...
