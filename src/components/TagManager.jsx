@@ -155,7 +155,6 @@ export default function TagManager() {
         </div>
 
         <div className="settings-tool-preview">
-          <span>Preview</span>
           <TagPill name={name || 'Tag'} pillColor={pillColor} textColor={textColor} />
         </div>
 

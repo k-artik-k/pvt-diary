@@ -47,6 +47,7 @@ export async function duplicatePostWithTags(post, tags = []) {
       body: post.body || '',
       is_markdown: post.is_markdown,
       is_draft: true,
+      is_pinned: false,
       passphrase_hash: post.passphrase_hash || null,
       encrypted_body: post.encrypted_body || null,
       date_tag: post.date_tag || null,

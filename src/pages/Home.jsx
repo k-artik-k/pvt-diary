@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import PostCard from '../components/PostCard';
+import PinnedPostsRail from '../components/PinnedPostsRail';
+import { sortPostsByCreatedAt } from '../utils/postOrdering';
 import './Home.css';
 
 const PAGE_SIZE = 20;
@@ -9,6 +11,7 @@ const PAGE_SIZE = 20;
 export default function Home({ searchQuery = '' }) {
   const { user } = useAuth();
   const [posts, setPosts] = useState([]);
+  const [pinnedPosts, setPinnedPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
@@ -31,18 +34,36 @@ export default function Home({ searchQuery = '' }) {
     return data || [];
   }, [user]);
 
+  const fetchPinnedPosts = useCallback(async (search = '') => {
+    let query = supabase
+      .from('posts')
+      .select('*, spaces(id, name, icon, share_link), post_tags(tag_id, tags(*))')
+      .eq('user_id', user.id)
+      .eq('is_pinned', true)
+      .order('created_at', { ascending: false });
+
+    if (search) {
+      query = query.ilike('title', `%${search}%`);
+    }
+
+    const { data } = await query;
+    return data || [];
+  }, [user]);
+
   useEffect(() => {
     if (!user) return;
     setLoading(true);
     setPosts([]);
+    setPinnedPosts([]);
     setPage(0);
     setHasMore(true);
-    fetchPosts(0, searchQuery).then(data => {
-      setPosts(data);
-      setHasMore(data.length === PAGE_SIZE);
+    Promise.all([fetchPosts(0, searchQuery), fetchPinnedPosts(searchQuery)]).then(([postData, pinnedData]) => {
+      setPosts(postData);
+      setPinnedPosts(sortPostsByCreatedAt(pinnedData));
+      setHasMore(postData.length === PAGE_SIZE);
       setLoading(false);
     });
-  }, [user, searchQuery, fetchPosts]);
+  }, [user, searchQuery, fetchPinnedPosts, fetchPosts]);
 
   // Infinite scroll
   useEffect(() => {
@@ -73,20 +94,26 @@ export default function Home({ searchQuery = '' }) {
 
   function handlePostDeleted(postId) {
     setPosts(prev => prev.filter(post => post.id !== postId));
+    setPinnedPosts(prev => prev.filter(post => post.id !== postId));
   }
 
   function handlePostUpdated(updatedPost, updatedTags) {
+    const nextPost = {
+      ...updatedPost,
+      post_tags: updatedTags.map((tag) => ({ tag_id: tag.id, tags: tag }))
+    };
+
     setPosts((prev) => prev.map((post) => (
-      post.id === updatedPost.id
-        ? {
-            ...updatedPost,
-            post_tags: updatedTags.map((tag) => ({ tag_id: tag.id, tags: tag }))
-          }
-        : post
+      post.id === updatedPost.id ? nextPost : post
     )));
+
+    setPinnedPosts((prev) => {
+      const others = prev.filter((post) => post.id !== updatedPost.id);
+      return updatedPost.is_pinned ? sortPostsByCreatedAt([nextPost, ...others]) : others;
+    });
   }
 
-  if (!loading && posts.length === 0) {
+  if (!loading && posts.length === 0 && pinnedPosts.length === 0) {
     return (
       <div className="home-page">
         <div className="home-empty">
@@ -99,6 +126,8 @@ export default function Home({ searchQuery = '' }) {
 
   return (
     <div className="home-page">
+      <PinnedPostsRail posts={pinnedPosts} createPath="/create" createLabel="New Post" />
+
       <div className="home-feed">
         {posts.map((post, i) => (
           <div key={post.id}>

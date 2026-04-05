@@ -16,14 +16,13 @@ import './ReadPost.css';
 
 export default function ReadPost() {
   const { id } = useParams();
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const shouldStartEditing = searchParams.get('edit') === '1';
 
   const [post, setPost] = useState(null);
   const [tags, setTags] = useState([]);
-  const [activity, setActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
@@ -56,34 +55,13 @@ export default function ReadPost() {
       if (data.passphrase_hash) {
         setDecryptedBody(null);
       }
-
-      if (data.user_id !== user?.id && user) {
-        await supabase.from('post_activity').insert({
-          post_id: id,
-          viewer_id: user.id,
-          viewer_username: profile?.username || profile?.display_name || user.email?.split('@')[0] || 'user',
-          action: 'viewed'
-        });
-      }
     }
     setLoading(false);
-  }, [id, user, profile, shouldStartEditing]);
+  }, [id, user, shouldStartEditing]);
 
   useEffect(() => {
     fetchPost();
   }, [fetchPost]);
-
-  useEffect(() => {
-    if (post && isOwner) {
-      supabase
-        .from('post_activity')
-        .select('*')
-        .eq('post_id', id)
-        .order('created_at', { ascending: false })
-        .limit(20)
-        .then(({ data }) => setActivity(data || []));
-    }
-  }, [post, isOwner, id]);
 
   useEffect(() => {
     if (user) {
@@ -181,6 +159,21 @@ export default function ReadPost() {
     }
   }
 
+  async function handleTogglePin() {
+    if (!post) return;
+
+    const { data } = await supabase
+      .from('posts')
+      .update({ is_pinned: !post.is_pinned })
+      .eq('id', post.id)
+      .select('*, spaces(id, name, icon, share_link)')
+      .single();
+
+    if (data) {
+      setPost((prev) => ({ ...prev, ...data }));
+    }
+  }
+
   async function handleDuplicate() {
     if (!post) return;
 
@@ -217,9 +210,11 @@ export default function ReadPost() {
             shareUrl={getPostShareUrl(post)}
             canManage={isOwner}
             isDraft={post.is_draft}
+            isPinned={post.is_pinned}
             onEdit={() => navigate(`/post/${post.id}?edit=1`)}
             onOrganize={() => setShowOrganizer(true)}
             onDuplicate={handleDuplicate}
+            onTogglePin={handleTogglePin}
             onToggleDraft={handleToggleDraft}
             onDelete={() => setShowDelete(true)}
           />
@@ -285,9 +280,11 @@ export default function ReadPost() {
               shareUrl={getPostShareUrl(post)}
               canManage={isOwner}
               isDraft={post.is_draft}
+              isPinned={post.is_pinned}
               onEdit={() => navigate(`/post/${post.id}?edit=1`, { replace: true })}
               onOrganize={() => setShowOrganizer(true)}
               onDuplicate={handleDuplicate}
+              onTogglePin={handleTogglePin}
               onToggleDraft={handleToggleDraft}
               onDelete={() => setShowDelete(true)}
             />
@@ -326,22 +323,20 @@ export default function ReadPost() {
                 {post.spaces.icon} {post.spaces.name}
               </span>
             )}
+            {post.is_pinned && (
+              <span className="read-post-pin" title="Pinned" aria-label="Pinned">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 17v5" />
+                  <path d="M8 4h8" />
+                  <path d="m9 4 1 7-3 3h10l-3-3 1-7" />
+                </svg>
+              </span>
+            )}
             <span className="read-post-date">{formatDate(post.created_at)}</span>
             {post.is_draft && <span style={{ fontSize: 11, color: 'var(--text-muted)', background: 'var(--bg-elevated)', padding: '1px 8px', borderRadius: 'var(--radius-pill)' }}>Draft</span>}
           </div>
           <div className="read-post-body" dangerouslySetInnerHTML={{ __html: sanitizeHTML(displayBody) }} />
         </>
-      )}
-
-      {isOwner && activity.length > 0 && (
-        <div className="read-post-activity">
-          <h4>Activity</h4>
-          {activity.map((item) => (
-            <div key={item.id} className="activity-item">
-              {item.viewer_username} - {item.action} - {formatDate(item.created_at)}
-            </div>
-          ))}
-        </div>
       )}
 
       {showDelete && (

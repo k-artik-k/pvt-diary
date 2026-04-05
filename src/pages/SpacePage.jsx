@@ -3,7 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import PostCard from '../components/PostCard';
+import PinnedPostsRail from '../components/PinnedPostsRail';
 import { getSharedSpaceUrl } from '../utils/appLinks';
+import { sortPostsByCreatedAt } from '../utils/postOrdering';
 import './SpacePage.css';
 
 const PAGE_SIZE = 20;
@@ -14,6 +16,7 @@ export default function SpacePage() {
   const navigate = useNavigate();
   const [space, setSpace] = useState(null);
   const [posts, setPosts] = useState([]);
+  const [pinnedPosts, setPinnedPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
@@ -52,6 +55,19 @@ export default function SpacePage() {
     return data || [];
   }, [id, space]);
 
+  const fetchPinnedPosts = useCallback(async () => {
+    if (!space) return [];
+
+    const { data } = await supabase
+      .from('posts')
+      .select('*, spaces(id, name, icon, share_link), post_tags(tag_id, tags(*))')
+      .eq('space_id', id)
+      .eq('is_pinned', true)
+      .order('created_at', { ascending: false });
+
+    return data || [];
+  }, [id, space]);
+
   useEffect(() => {
     fetchSpace();
   }, [fetchSpace]);
@@ -64,10 +80,12 @@ export default function SpacePage() {
     async function loadFirstPage() {
       setLoading(true);
       setPosts([]);
+      setPinnedPosts([]);
       setPage(0);
-      const data = await fetchPosts(0);
+      const [data, pinnedData] = await Promise.all([fetchPosts(0), fetchPinnedPosts()]);
       if (cancelled) return;
       setPosts(data);
+      setPinnedPosts(sortPostsByCreatedAt(pinnedData));
       setHasMore(data.length === PAGE_SIZE);
       setLoading(false);
     }
@@ -77,7 +95,7 @@ export default function SpacePage() {
     return () => {
       cancelled = true;
     };
-  }, [space, fetchPosts]);
+  }, [space, fetchPinnedPosts, fetchPosts]);
 
   useEffect(() => {
     if (!loadingRef.current) return undefined;
@@ -111,9 +129,15 @@ export default function SpacePage() {
 
   function handlePostDeleted(postId) {
     setPosts((prev) => prev.filter((post) => post.id !== postId));
+    setPinnedPosts((prev) => prev.filter((post) => post.id !== postId));
   }
 
   function handlePostUpdated(updatedPost, updatedTags) {
+    const nextPost = {
+      ...updatedPost,
+      post_tags: updatedTags.map((tag) => ({ tag_id: tag.id, tags: tag }))
+    };
+
     setPosts((prev) => {
       if (updatedPost.space_id !== id) {
         return prev.filter((post) => post.id !== updatedPost.id);
@@ -121,12 +145,19 @@ export default function SpacePage() {
 
       return prev.map((post) => (
         post.id === updatedPost.id
-          ? {
-              ...updatedPost,
-              post_tags: updatedTags.map((tag) => ({ tag_id: tag.id, tags: tag }))
-            }
+          ? nextPost
           : post
       ));
+    });
+
+    setPinnedPosts((prev) => {
+      const others = prev.filter((post) => post.id !== updatedPost.id);
+
+      if (updatedPost.space_id !== id || !updatedPost.is_pinned) {
+        return others;
+      }
+
+      return sortPostsByCreatedAt([nextPost, ...others]);
     });
   }
 
@@ -184,7 +215,7 @@ export default function SpacePage() {
         {isOwner && (
           <div className="space-page-actions">
             <button className="btn btn-ghost" onClick={handleCopyLink}>
-              {copied ? 'Copied' : 'Copy Link'}
+              {copied ? 'Copied' : 'Copy link'}
             </button>
             <button className="btn btn-primary" onClick={() => navigate(`/create?space=${id}`)}>
               New Post
@@ -192,6 +223,12 @@ export default function SpacePage() {
           </div>
         )}
       </div>
+
+      <PinnedPostsRail
+        posts={pinnedPosts}
+        createPath={isOwner ? `/create?space=${id}` : ''}
+        createLabel="New Post"
+      />
 
       <div className="space-page-feed">
         {posts.map((post, index) => (

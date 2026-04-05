@@ -54,6 +54,19 @@ export default function PostCard({ post, tags = [], onDeleted, onUpdated }) {
     }
   }
 
+  async function handleTogglePin() {
+    const { data } = await supabase
+      .from('posts')
+      .update({ is_pinned: !currentPost.is_pinned })
+      .eq('id', currentPost.id)
+      .select('*, spaces(id, name, icon, share_link)')
+      .single();
+
+    if (data) {
+      handlePostUpdated(data, currentTags);
+    }
+  }
+
   async function handleDuplicate() {
     const { data } = await duplicatePostWithTags(currentPost, currentTags);
     if (data?.id) {
@@ -67,6 +80,15 @@ export default function PostCard({ post, tags = [], onDeleted, onUpdated }) {
         <div className="post-card-header-row">
           <div className="post-card-title-wrap">
             <h3 className="post-card-title">{currentPost.title || 'Untitled'}</h3>
+            {currentPost.is_pinned && (
+              <span className="post-card-pin" title="Pinned" aria-label="Pinned">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 17v5" />
+                  <path d="M8 4h8" />
+                  <path d="m9 4 1 7-3 3h10l-3-3 1-7" />
+                </svg>
+              </span>
+            )}
             {currentPost.is_draft && <span className="post-card-draft">Draft</span>}
             {currentPost.passphrase_hash && (
               <span className="post-card-lock" title="Locked">
@@ -82,9 +104,11 @@ export default function PostCard({ post, tags = [], onDeleted, onUpdated }) {
             shareUrl={getPostShareUrl(currentPost)}
             canManage={canManage}
             isDraft={currentPost.is_draft}
+            isPinned={currentPost.is_pinned}
             onEdit={() => navigate(`/post/${currentPost.id}?edit=1`)}
             onOrganize={() => setShowOrganizer(true)}
             onDuplicate={handleDuplicate}
+            onTogglePin={handleTogglePin}
             onToggleDraft={handleToggleDraft}
             onDelete={() => setShowDelete(true)}
           />

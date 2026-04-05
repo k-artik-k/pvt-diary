@@ -129,7 +129,7 @@ export default function PeopleManager() {
               setMessage('');
             }}
           >
-            <option value="">Select a space</option>
+            <option value="">Select space</option>
             {spaces.map((space) => (
               <option key={space.id} value={space.id}>{space.icon} {space.name}</option>
             ))}
@@ -137,7 +137,7 @@ export default function PeopleManager() {
 
           {selectedSpaceItem && (
             <button className="btn btn-ghost" onClick={handleCopyLink}>
-              Copy Link
+              Copy link
             </button>
           )}
         </div>
@@ -159,8 +159,6 @@ export default function PeopleManager() {
               />
               <button className="btn btn-primary" onClick={handleAdd}>Add</button>
             </div>
-
-            <p className="settings-tool-note">Use the username, not email.</p>
           </>
         )}
 

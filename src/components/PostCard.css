@@ -25,6 +25,14 @@
   font-family: var(--font);
 }
 
+.post-card-pin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  opacity: 0.78;
+}
+
 .post-card-subtitle {
   font-size: 13px;
   font-style: italic;

@@ -1,0 +1,139 @@
+.pinned-posts-rail {
+  width: min(100%, var(--page-content-max));
+  margin: 0 auto 24px;
+}
+
+.pinned-posts-header {
+  margin-bottom: 12px;
+}
+
+.pinned-posts-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.pinned-posts-track {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.pinned-post-card,
+.pinned-post-create {
+  width: 168px;
+  min-width: 168px;
+  min-height: 168px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: var(--text);
+}
+
+.pinned-post-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pinned-post-card-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.pinned-post-card-space {
+  font-size: 10px;
+  color: var(--text-muted);
+  max-width: 92px;
+  line-height: 1.35;
+  text-align: right;
+}
+
+.pinned-post-card-body {
+  display: grid;
+  gap: 6px;
+  margin: 14px 0 16px;
+}
+
+.pinned-post-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.28;
+  color: var(--text);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pinned-post-card-subtitle,
+.pinned-post-card-snippet {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pinned-post-card-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.pinned-post-create {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 10px;
+}
+
+.pinned-post-create-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+}
+
+.pinned-post-create-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+  .pinned-posts-rail {
+    margin-bottom: 20px;
+  }
+
+  .pinned-post-card,
+  .pinned-post-create {
+    width: 152px;
+    min-width: 152px;
+    min-height: 152px;
+    padding: 12px;
+  }
+}

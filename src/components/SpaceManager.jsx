@@ -150,7 +150,7 @@ export default function SpaceManager() {
         </div>
 
         <label className="settings-tool-field">
-          <span className="settings-tool-label">Auto Tag</span>
+          <span className="settings-tool-label">Tag</span>
           <select
             className="settings-tool-input"
             value={tagId}
@@ -203,7 +203,7 @@ export default function SpaceManager() {
                 {!space.show_in_menu && <span className="settings-tool-chip">Hidden</span>}
               </div>
               {space.tags?.name && (
-                <div className="settings-tool-meta">Auto tag: {space.tags.name}</div>
+                <div className="settings-tool-meta">Tag · {space.tags.name}</div>
               )}
             </div>
 
@@ -211,7 +211,7 @@ export default function SpaceManager() {
               <SettingsItemMenu
                 items={[
                   { label: 'Open', onSelect: () => navigate(`/space/${space.id}`) },
-                  { label: 'Copy Link', onSelect: () => copyShareLink(space) },
+                  { label: 'Copy link', onSelect: () => copyShareLink(space) },
                   { label: 'Edit', onSelect: () => startEdit(space) },
                   { label: 'Delete', danger: true, onSelect: () => handleDelete(space.id) }
                 ]}

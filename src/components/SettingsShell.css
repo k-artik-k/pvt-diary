@@ -1,63 +1,63 @@
 .settings-page {
-  width: min(100%, 1080px);
+  width: min(100%, 920px);
   margin: 0 auto;
-  padding: 12px 24px 48px;
+  padding: 20px 32px 56px;
 }
 
 .settings-header {
   display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  width: min(100%, 960px);
-  margin: 0 auto 18px;
+  align-items: center;
+  gap: 16px;
+  margin: 0 0 28px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
 }
 
 .settings-back-btn {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  background: var(--bg-elevated);
   color: var(--text-secondary);
-  transition: background var(--transition), color var(--transition);
+  opacity: 0.82;
 }
 
 .settings-back-btn:hover {
-  background: var(--bg-hover);
   color: var(--text);
+  opacity: 1;
+  border-color: var(--text-muted);
 }
 
-.settings-kicker {
-  display: block;
-  font-size: 11px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  margin-bottom: 2px;
+.settings-heading {
+  min-width: 0;
 }
 
 .settings-title {
-  font-size: 26px;
-  line-height: 1.12;
-  letter-spacing: -0.03em;
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.05em;
 }
 
 .settings-description {
-  margin-top: 4px;
+  margin-top: 6px;
   font-size: 13px;
   color: var(--text-secondary);
-  line-height: 1.6;
+  line-height: 1.5;
+  opacity: 0.72;
 }
 
 .settings-content {
-  width: min(100%, 960px);
-  margin: 0 auto;
+  width: 100%;
 }
 
 .settings-card {
   border-top: 1px solid var(--border);
-  padding: 16px 0 18px;
+  padding: 20px 0;
 }
 
 .settings-card:first-child {
@@ -66,47 +66,43 @@
 }
 
 .settings-card-title {
-  font-size: 17px;
-  margin-bottom: 3px;
-}
-
-.settings-card-copy {
-  font-size: 12px;
-  color: var(--text-secondary);
-  line-height: 1.55;
-  margin-bottom: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
 }
 
 .settings-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 14px;
 }
 
 .settings-field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .settings-label {
-  font-size: 11px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  opacity: 0.76;
 }
 
 .settings-inline-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 14px;
+  gap: 12px;
+  margin-top: 16px;
 }
 
 .settings-note {
   font-size: 12px;
-  margin-top: 10px;
-  color: var(--text-muted);
+  line-height: 1.5;
+  margin-top: 12px;
+  color: var(--text-secondary);
+  opacity: 0.76;
 }
 
 .settings-note.error {
@@ -120,19 +116,46 @@
 .settings-tools {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
+}
+
+.settings-danger-card {
+  padding-top: 24px;
+}
+
+.settings-danger-body {
+  display: grid;
+  gap: 14px;
+  max-width: 520px;
+}
+
+.settings-danger-confirm {
+  display: grid;
+  gap: 14px;
+  padding: 14px 0 0;
+}
+
+.settings-danger-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 @media (max-width: 768px) {
   .settings-page {
-    padding: 8px 16px 32px;
+    padding: 12px 16px 40px;
   }
 
   .settings-title {
-    font-size: 24px;
+    font-size: 26px;
   }
 
   .settings-form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .settings-danger-actions {
+    flex-direction: column;
+    align-items: stretch;
   }
 }

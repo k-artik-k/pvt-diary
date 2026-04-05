@@ -4,12 +4,15 @@ import { exportAllData, importData } from '../utils/exportImport';
 import SettingsShell from '../components/SettingsShell';
 
 export default function SettingsProfile() {
-  const { user, profile, updateUsername, updatePassword, signOut } = useAuth();
+  const { user, profile, updateUsername, updatePassword, deleteAccount, signOut } = useAuth();
   const [username, setUsername] = useState('');
   const [usernameState, setUsernameState] = useState({ error: '', success: '', saving: false });
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [passwordState, setPasswordState] = useState({ error: '', success: '', saving: false });
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteInput, setDeleteInput] = useState('');
+  const [deleteState, setDeleteState] = useState({ error: '', saving: false });
 
   const currentUsername =
     profile?.username ||
@@ -20,6 +23,8 @@ export default function SettingsProfile() {
   useEffect(() => {
     setUsername(currentUsername);
   }, [currentUsername]);
+
+  const deleteMatches = deleteInput.trim() === currentUsername;
 
   async function handleUsernameSave() {
     const nextUsername = username.trim();
@@ -90,11 +95,27 @@ export default function SettingsProfile() {
     input.click();
   }
 
+  async function handleDeleteAccount() {
+    if (!deleteMatches) {
+      setDeleteState({ error: 'Type your username exactly to continue.', saving: false });
+      return;
+    }
+
+    setDeleteState({ error: '', saving: true });
+    const { error } = await deleteAccount();
+
+    if (error) {
+      setDeleteState({
+        error: error.message || 'Unable to delete account. If you uploaded files earlier, remove them first or use the admin dashboard.',
+        saving: false
+      });
+    }
+  }
+
   return (
     <SettingsShell title="Profile">
       <section className="settings-card">
-        <h2 className="settings-card-title">Username</h2>
-        <p className="settings-card-copy">People add this name to a space.</p>
+        <h2 className="settings-card-title">Account</h2>
         <div className="settings-form-grid">
           <div className="settings-field">
             <span className="settings-label">Username</span>
@@ -109,14 +130,13 @@ export default function SettingsProfile() {
         {usernameState.success && <p className="settings-note success">{usernameState.success}</p>}
         <div className="settings-inline-actions">
           <button className="btn btn-primary" onClick={handleUsernameSave} disabled={usernameState.saving}>
-            {usernameState.saving ? 'Saving...' : 'Save Username'}
+            {usernameState.saving ? 'Saving...' : 'Save'}
           </button>
         </div>
       </section>
 
       <section className="settings-card">
         <h2 className="settings-card-title">Password</h2>
-        <p className="settings-card-copy">Set a new password.</p>
         <div className="settings-form-grid">
           <div className="settings-field">
             <span className="settings-label">New Password</span>
@@ -131,18 +151,67 @@ export default function SettingsProfile() {
         {passwordState.success && <p className="settings-note success">{passwordState.success}</p>}
         <div className="settings-inline-actions">
           <button className="btn btn-primary" onClick={handlePasswordSave} disabled={passwordState.saving}>
-            {passwordState.saving ? 'Updating...' : 'Update Password'}
+            {passwordState.saving ? 'Updating...' : 'Update'}
           </button>
         </div>
       </section>
 
       <section className="settings-card">
         <h2 className="settings-card-title">Data</h2>
-        <p className="settings-card-copy">Backup or restore.</p>
         <div className="settings-tools">
-          <button className="btn btn-ghost" onClick={handleExport}>Export Data</button>
-          <button className="btn btn-ghost" onClick={handleImport}>Import Data</button>
-          <button className="btn btn-danger" onClick={signOut}>Sign Out</button>
+          <button className="btn btn-ghost" onClick={handleExport}>Export</button>
+          <button className="btn btn-ghost" onClick={handleImport}>Import</button>
+          <button className="btn btn-danger" onClick={signOut}>Sign out</button>
+        </div>
+      </section>
+
+      <section className="settings-card settings-danger-card">
+        <h2 className="settings-card-title">Danger</h2>
+        <div className="settings-danger-body">
+          <p className="settings-note">
+            Delete your account and all of your owned data permanently. This cannot be undone.
+          </p>
+
+          {!showDeleteConfirm ? (
+            <div className="settings-inline-actions">
+              <button className="btn btn-danger" onClick={() => setShowDeleteConfirm(true)}>
+                Delete account
+              </button>
+            </div>
+          ) : (
+            <div className="settings-danger-confirm">
+              <div className="settings-field">
+                <span className="settings-label">Type your username to confirm</span>
+                <input
+                  value={deleteInput}
+                  onChange={(event) => setDeleteInput(event.target.value)}
+                  placeholder={currentUsername}
+                />
+              </div>
+
+              {deleteState.error && <p className="settings-note error">{deleteState.error}</p>}
+
+              <div className="settings-danger-actions">
+                <button
+                  className="btn btn-danger"
+                  onClick={handleDeleteAccount}
+                  disabled={deleteState.saving || !deleteMatches}
+                >
+                  {deleteState.saving ? 'Deleting...' : 'Delete permanently'}
+                </button>
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => {
+                    setShowDeleteConfirm(false);
+                    setDeleteInput('');
+                    setDeleteState({ error: '', saving: false });
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </section>
     </SettingsShell>

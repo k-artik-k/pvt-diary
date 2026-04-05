@@ -10,6 +10,16 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  async function fetchProfile(userId) {
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    setProfile(data);
+    setLoading(false);
+  }
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
@@ -28,16 +38,6 @@ export function AuthProvider({ children }) {
 
     return () => subscription.unsubscribe();
   }, []);
-
-  async function fetchProfile(userId) {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-    setProfile(data);
-    setLoading(false);
-  }
 
   async function updateProfile(updates) {
     const { data, error } = await supabase
@@ -159,6 +159,23 @@ export function AuthProvider({ children }) {
     return { data, error };
   }
 
+  async function deleteAccount() {
+    const { data, error } = await supabase.rpc('delete_my_account');
+
+    if (!error) {
+      try {
+        await supabase.auth.signOut();
+      } catch (signOutError) {
+        console.warn('Unable to clear session after account deletion:', signOutError);
+      }
+
+      setUser(null);
+      setProfile(null);
+    }
+
+    return { data, error };
+  }
+
   const value = {
     user,
     profile,
@@ -169,6 +186,7 @@ export function AuthProvider({ children }) {
     signOut,
     resetPassword,
     updatePassword,
+    deleteAccount,
     updateProfile,
     updateUsername,
     fetchProfile: () => user && fetchProfile(user.id)

@@ -23,9 +23,11 @@ export default function PostActionsMenu({
   shareUrl,
   canManage = false,
   isDraft = false,
+  isPinned = false,
   onEdit,
   onOrganize,
   onDuplicate,
+  onTogglePin,
   onToggleDraft,
   onDelete
 }) {
@@ -97,6 +99,9 @@ export default function PostActionsMenu({
               <button className="post-actions-item" onClick={(event) => handleMenuAction(event, onDuplicate)}>
                 Duplicate as Draft
               </button>
+              <button className="post-actions-item" onClick={(event) => handleMenuAction(event, onTogglePin)}>
+                {isPinned ? 'Unpin Post' : 'Pin Post'}
+              </button>
               <button className="post-actions-item" onClick={(event) => handleMenuAction(event, onToggleDraft)}>
                 {isDraft ? 'Publish Post' : 'Mark as Draft'}
               </button>
@@ -104,7 +109,7 @@ export default function PostActionsMenu({
             </>
           )}
           <button className="post-actions-item" onClick={handleCopy}>
-            {copied ? 'Copied' : 'Copy Link'}
+            {copied ? 'Copied' : 'Copy link'}
           </button>
           {canManage && (
             <button className="post-actions-item danger" onClick={handleDeleteClick}>

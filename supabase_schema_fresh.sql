@@ -55,6 +55,7 @@ create table if not exists public.posts (
   body text default '',
   is_markdown boolean not null default false,
   is_draft boolean not null default false,
+  is_pinned boolean not null default false,
   passphrase_hash text,
   encrypted_body text,
   date_tag date,
@@ -69,22 +70,12 @@ create table if not exists public.post_tags (
   primary key (post_id, tag_id)
 );
 
-create table if not exists public.post_activity (
-  id uuid primary key default gen_random_uuid(),
-  post_id uuid not null references public.posts on delete cascade,
-  viewer_id uuid not null references auth.users on delete cascade,
-  viewer_username text not null,
-  action text not null default 'viewed' check (action in ('viewed', 'read')),
-  created_at timestamptz not null default now()
-);
-
 alter table public.profiles enable row level security;
 alter table public.tags enable row level security;
 alter table public.spaces enable row level security;
 alter table public.space_members enable row level security;
 alter table public.posts enable row level security;
 alter table public.post_tags enable row level security;
-alter table public.post_activity enable row level security;
 
 -- ============================================
 -- 2. FUNCTIONS AND TRIGGERS
@@ -119,10 +110,6 @@ begin
   set member_username = new.username
   where member_username = old.username;
 
-  update public.post_activity
-  set viewer_username = new.username
-  where viewer_id = new.id;
-
   return new;
 end;
 $$ language plpgsql security definer set search_path = public;
@@ -134,6 +121,36 @@ begin
   return new;
 end;
 $$ language plpgsql;
+
+create or replace function public.delete_my_account()
+returns boolean as $$
+declare
+  account_id uuid := auth.uid();
+  account_username text;
+begin
+  if account_id is null then
+    raise exception 'Not authenticated';
+  end if;
+
+  select username into account_username
+  from public.profiles
+  where id = account_id;
+
+  delete from storage.objects
+  where bucket_id = 'post-images'
+    and name like account_id::text || '/%';
+
+  if account_username is not null then
+    delete from public.space_members
+    where member_username = account_username;
+  end if;
+
+  delete from auth.users
+  where id = account_id;
+
+  return true;
+end;
+$$ language plpgsql security definer set search_path = public;
 
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
@@ -383,25 +400,6 @@ create policy "Space members can view shared post tags"
     )
   );
 
-drop policy if exists "Post owners can view activity" on public.post_activity;
-drop policy if exists "Users can log activity" on public.post_activity;
-
-create policy "Post owners can view activity"
-  on public.post_activity
-  for select
-  using (
-    post_id in (
-      select id
-      from public.posts
-      where user_id = auth.uid()
-    )
-  );
-
-create policy "Users can log activity"
-  on public.post_activity
-  for insert
-  with check (auth.uid() = viewer_id);
-
 -- ============================================
 -- 4. STORAGE
 -- ============================================
@@ -451,5 +449,3 @@ create index if not exists idx_space_members_space_id on public.space_members(sp
 create index if not exists idx_space_members_member_username on public.space_members(member_username);
 create index if not exists idx_post_tags_post on public.post_tags(post_id);
 create index if not exists idx_post_tags_tag on public.post_tags(tag_id);
-create index if not exists idx_post_activity_post_id on public.post_activity(post_id);
-create index if not exists idx_post_activity_viewer_id on public.post_activity(viewer_id);

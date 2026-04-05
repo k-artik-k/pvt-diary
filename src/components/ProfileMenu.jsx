@@ -25,10 +25,7 @@ export default function ProfileMenu({ onClose }) {
   return (
     <div className="profile-menu">
       <div className="profile-menu-profile">
-        <div>
-          <div className="profile-menu-label">Signed in as</div>
-          <div className="profile-menu-username">{currentUsername}</div>
-        </div>
+        <div className="profile-menu-username">{currentUsername}</div>
       </div>
 
       <div className="profile-menu-sep" />
@@ -54,7 +51,7 @@ export default function ProfileMenu({ onClose }) {
 
       <button className="profile-menu-item" onClick={handleSignOut} style={{ color: 'var(--danger)' }}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-        Sign Out
+        Sign out
       </button>
     </div>
   );

@@ -6,41 +6,53 @@ export function useKeyboardShortcuts() {
   const pendingKey = useRef(null);
   const timeoutRef = useRef(null);
 
-  const handleKeyDown = useCallback((e) => {
-    const target = e.target;
-    const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+  const handleKeyDown = useCallback((event) => {
+    const target = event.target;
+    const isInput =
+      target.tagName === 'INPUT' ||
+      target.tagName === 'TEXTAREA' ||
+      target.isContentEditable;
+    const isCreateShortcut =
+      (event.ctrlKey || event.metaKey) &&
+      !event.shiftKey &&
+      event.key.toLowerCase() === 'k';
 
-    // "/" to focus search — works even in inputs (prevent default)
-    if (e.key === '/' && !isInput) {
-      e.preventDefault();
+    if (isCreateShortcut && !isInput) {
+      event.preventDefault();
+      navigate('/create');
+      return;
+    }
+
+    if (event.key === '/' && !isInput) {
+      event.preventDefault();
       document.getElementById('global-search')?.focus();
       return;
     }
 
     if (isInput) return;
 
-    // g + h = home, g + c = calendar (two-key combo)
     if (pendingKey.current === 'g') {
       clearTimeout(timeoutRef.current);
       pendingKey.current = null;
-      if (e.key === 'h') {
-        e.preventDefault();
+
+      if (event.key === 'h') {
+        event.preventDefault();
         navigate('/');
         return;
       }
-      if (e.key === 'c') {
-        e.preventDefault();
+
+      if (event.key === 'c') {
+        event.preventDefault();
         navigate('/calendar');
         return;
       }
     }
 
-    if (e.key === 'g') {
+    if (event.key === 'g') {
       pendingKey.current = 'g';
       timeoutRef.current = setTimeout(() => {
         pendingKey.current = null;
       }, 500);
-      return;
     }
   }, [navigate]);
 

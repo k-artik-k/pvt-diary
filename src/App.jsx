@@ -15,6 +15,7 @@ import SettingsProfile from './pages/SettingsProfile';
 import SettingsSpaces from './pages/SettingsSpaces';
 import SettingsPeople from './pages/SettingsPeople';
 import SettingsTags from './pages/SettingsTags';
+import PersonProfile from './pages/PersonProfile';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -78,6 +79,13 @@ function AppRoutes() {
         <ProtectedRoute>
           <Layout>
             <SpacePage />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/people/:username" element={
+        <ProtectedRoute>
+          <Layout>
+            <PersonProfile />
           </Layout>
         </ProtectedRoute>
       } />

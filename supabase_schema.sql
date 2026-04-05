@@ -52,10 +52,6 @@ begin
   set member_username = new.username
   where member_username = old.username;
 
-  update public.post_activity
-  set viewer_username = new.username
-  where viewer_id = new.id;
-
   return new;
 end;
 $$ language plpgsql security definer set search_path = public;
@@ -189,6 +185,7 @@ create table if not exists public.posts (
   body text default '',
   is_markdown boolean default false,
   is_draft boolean default false,
+  is_pinned boolean not null default false,
   passphrase_hash text,
   encrypted_body text,
   date_tag date,
@@ -254,6 +251,36 @@ begin
   return new;
 end;
 $$ language plpgsql;
+
+create or replace function public.delete_my_account()
+returns boolean as $$
+declare
+  account_id uuid := auth.uid();
+  account_username text;
+begin
+  if account_id is null then
+    raise exception 'Not authenticated';
+  end if;
+
+  select username into account_username
+  from public.profiles
+  where id = account_id;
+
+  delete from storage.objects
+  where bucket_id = 'post-images'
+    and name like account_id::text || '/%';
+
+  if account_username is not null then
+    delete from public.space_members
+    where member_username = account_username;
+  end if;
+
+  delete from auth.users
+  where id = account_id;
+
+  return true;
+end;
+$$ language plpgsql security definer set search_path = public;
 
 drop trigger if exists posts_updated_at on public.posts;
 
@@ -322,34 +349,7 @@ create policy "Users can view accessible tags"
   );
 
 -- ============================================
--- 7. POST ACTIVITY (view tracking)
--- ============================================
-create table if not exists public.post_activity (
-  id uuid default gen_random_uuid() primary key,
-  post_id uuid references public.posts on delete cascade not null,
-  viewer_id uuid references auth.users on delete cascade not null,
-  viewer_username text not null,
-  action text check (action in ('viewed', 'read')) default 'viewed',
-  created_at timestamptz default now()
-);
-
-alter table public.post_activity enable row level security;
-
--- Post owners can view activity on their posts
-drop policy if exists "Post owners can view activity" on public.post_activity;
-drop policy if exists "Users can log activity" on public.post_activity;
-
-create policy "Post owners can view activity"
-  on public.post_activity for select using (
-    post_id in (select id from public.posts where user_id = auth.uid())
-  );
-
--- Any authenticated user can insert activity
-create policy "Users can log activity"
-  on public.post_activity for insert with check (auth.uid() = viewer_id);
-
--- ============================================
--- 8. STORAGE BUCKET for images
+-- 7. STORAGE BUCKET for images
 -- ============================================
 insert into storage.buckets (id, name, public)
 values ('post-images', 'post-images', true)
@@ -373,7 +373,7 @@ create policy "Users can delete own images"
   );
 
 -- ============================================
--- 9. INDEXES for performance
+-- 8. INDEXES for performance
 -- ============================================
 create index if not exists idx_posts_user_id on public.posts(user_id);
 create index if not exists idx_posts_created_at on public.posts(created_at desc);

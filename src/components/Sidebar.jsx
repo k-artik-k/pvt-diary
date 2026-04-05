@@ -1,44 +1,81 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
+import Identicon from './Identicon';
+import { fetchOwnedSpacePeople } from '../utils/peopleDirectory';
 import './Sidebar.css';
 
 const DEFAULT_SPACE_ICON = '📁';
 
-export default function Sidebar({ collapsed, onToggle }) {
+export default function Sidebar({
+  collapsed,
+  onToggle,
+  isMobile = false,
+  mobileOpen = false,
+  onMobileClose
+}) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
   const [ownedSpaces, setOwnedSpaces] = useState([]);
   const [sharedSpaces, setSharedSpaces] = useState([]);
+  const [people, setPeople] = useState([]);
   const [showCreateSpace, setShowCreateSpace] = useState(false);
   const [newSpaceName, setNewSpaceName] = useState('');
   const [newSpaceIcon, setNewSpaceIcon] = useState(DEFAULT_SPACE_ICON);
-  const isMobile = window.innerWidth <= 768;
-  const [mobileOpen, setMobileOpen] = useState(false);
 
-  const fetchAccessibleSpaces = useCallback(async () => {
-    if (!user) return;
-
+  async function queryAccessibleSpaces() {
     const { data } = await supabase
       .from('spaces')
       .select('id, name, icon, user_id, show_in_menu')
       .eq('show_in_menu', true)
       .order('created_at');
 
-    const spaces = data || [];
-    setOwnedSpaces(spaces.filter((space) => space.user_id === user.id));
-    setSharedSpaces(spaces.filter((space) => space.user_id !== user.id));
-  }, [user]);
+    return data || [];
+  }
 
   useEffect(() => {
-    fetchAccessibleSpaces();
-  }, [fetchAccessibleSpaces]);
+    let cancelled = false;
+
+    async function loadSpaces() {
+      if (!user?.id) return;
+      const spaces = await queryAccessibleSpaces();
+      if (cancelled) return;
+      setOwnedSpaces(spaces.filter((space) => space.user_id === user.id));
+      setSharedSpaces(spaces.filter((space) => space.user_id !== user.id));
+    }
+
+    loadSpaces();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPeople() {
+      if (!user?.id) return;
+      const peopleData = await fetchOwnedSpacePeople(user.id);
+      if (!cancelled) {
+        setPeople(peopleData);
+      }
+    }
+
+    loadPeople();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   function navigateTo(path) {
     navigate(path);
-    if (isMobile) setMobileOpen(false);
+    if (isMobile) {
+      onMobileClose?.();
+    }
   }
 
   function isActive(path) {
@@ -56,19 +93,17 @@ export default function Sidebar({ collapsed, onToggle }) {
     });
 
     if (!error) {
+      const spaces = await queryAccessibleSpaces();
       setNewSpaceName('');
       setNewSpaceIcon(DEFAULT_SPACE_ICON);
       setShowCreateSpace(false);
-      fetchAccessibleSpaces();
+      setOwnedSpaces(spaces.filter((space) => space.user_id === user.id));
+      setSharedSpaces(spaces.filter((space) => space.user_id !== user.id));
     }
   }
 
   function handleToggle() {
-    if (isMobile) {
-      setMobileOpen(!mobileOpen);
-    } else {
-      onToggle();
-    }
+    onToggle?.();
   }
 
   function renderSpaceItem(space, isShared = false) {
@@ -87,6 +122,35 @@ export default function Sidebar({ collapsed, onToggle }) {
         <span className="sidebar-item-content">
           <span className="sidebar-item-label">{space.name}</span>
           {isShared && <span className="sidebar-item-badge">shared</span>}
+        </span>
+      </button>
+    );
+  }
+
+  function renderPersonItem(person) {
+    const encodedUsername = encodeURIComponent(person.username);
+
+    return (
+      <button
+        key={person.username}
+        className={`sidebar-item ${isActive(`/people/${encodedUsername}`) ? 'active' : ''}`}
+        onClick={() => navigateTo(`/people/${encodedUsername}`)}
+        title={person.displayName || person.username}
+      >
+        <span className="sidebar-item-icon sidebar-person-icon">
+          <span className="sidebar-person-avatar">
+            {person.avatarUrl ? (
+              <img src={person.avatarUrl} alt="" />
+            ) : (
+              <Identicon value={person.username} size={18} />
+            )}
+          </span>
+        </span>
+        <span className="sidebar-item-content">
+          <span className="sidebar-item-label">{person.displayName || person.username}</span>
+          <span className="sidebar-item-badge sidebar-item-count">
+            {person.spaceCount} {person.spaceCount === 1 ? 'space' : 'spaces'}
+          </span>
         </span>
       </button>
     );
@@ -140,6 +204,13 @@ export default function Sidebar({ collapsed, onToggle }) {
             <div className="sidebar-section-label">Shared With You</div>
           )}
           {sharedSpaces.map((space) => renderSpaceItem(space, true))}
+
+          {people.length > 0 && <div className="sidebar-space-divider" />}
+
+          {people.length > 0 && showSectionLabels && (
+            <div className="sidebar-section-label">People</div>
+          )}
+          {people.map((person) => renderPersonItem(person))}
         </nav>
 
         {!collapsed && (
@@ -173,27 +244,31 @@ export default function Sidebar({ collapsed, onToggle }) {
               </div>
             ) : (
               <button className="sidebar-add-btn" onClick={() => setShowCreateSpace(true)} title="Create space">
-                +
+                <svg className="sidebar-add-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" aria-hidden="true">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
               </button>
             )}
           </div>
         )}
       </div>
 
-      <div className="sidebar-toggle">
-        <button className="sidebar-toggle-btn" onClick={handleToggle} title={collapsed ? 'Expand menu' : 'Collapse menu'}>
-          <svg className="hamburger-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            <line x1="3" y1="6" x2="21" y2="6" />
-            <line x1="3" y1="12" x2="21" y2="12" />
-            <line x1="3" y1="18" x2="21" y2="18" />
-          </svg>
-        </button>
-      </div>
+      {!isMobile && (
+        <div className="sidebar-toggle">
+          <button className="sidebar-toggle-btn" onClick={handleToggle} title={collapsed ? 'Expand menu' : 'Collapse menu'}>
+            <svg className="hamburger-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {isMobile && (
         <div
           className={`sidebar-overlay ${mobileOpen ? 'visible' : ''}`}
-          onClick={() => setMobileOpen(false)}
+          onClick={() => onMobileClose?.()}
         />
       )}
     </div>

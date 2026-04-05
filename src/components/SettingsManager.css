@@ -1,18 +1,19 @@
 .settings-tool {
   display: grid;
-  gap: 18px;
+  gap: 24px;
 }
 
 .settings-tool-form {
-  padding-bottom: 16px;
+  display: grid;
+  gap: 14px;
+  padding-bottom: 20px;
   border-bottom: 1px solid var(--border);
 }
 
 .settings-tool-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 14px;
 }
 
 .settings-tool-grid-compact {
@@ -22,24 +23,25 @@
 .settings-tool-field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .settings-tool-label {
-  font-size: 11px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  opacity: 0.76;
 }
 
 .settings-tool-input {
   width: 100%;
+  min-height: 40px;
   padding: 10px 12px;
   border: 1px solid var(--border);
-  border-radius: 10px;
-  background: transparent;
+  border-radius: 6px;
+  background: var(--bg-elevated);
   color: var(--text);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .settings-tool-input.icon {
@@ -51,8 +53,7 @@
 .settings-tool-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
+  gap: 12px;
 }
 
 .settings-tool-row .settings-tool-input,
@@ -63,23 +64,31 @@
 .settings-tool-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-  font-size: 12px;
+  gap: 10px;
+  font-size: 13px;
   color: var(--text-secondary);
   cursor: pointer;
+}
+
+.settings-tool-toggle input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
 }
 
 .settings-tool-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
+  padding-top: 4px;
 }
 
 .settings-tool-note {
-  margin: 10px 0 0;
+  margin: 0;
   font-size: 12px;
-  color: var(--text-muted);
+  line-height: 1.5;
+  color: var(--text-secondary);
+  opacity: 0.76;
 }
 
 .settings-tool-note.error {
@@ -96,11 +105,11 @@
 
 .settings-tool-item {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border-light);
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
 }
 
 .settings-tool-item:last-child {
@@ -110,7 +119,7 @@
 .settings-tool-main {
   min-width: 0;
   display: grid;
-  gap: 4px;
+  gap: 6px;
 }
 
 .settings-tool-title-row {
@@ -122,34 +131,35 @@
 
 .settings-tool-name {
   font-size: 14px;
-  line-height: 1.4;
+  line-height: 1.35;
   color: var(--text);
   font-weight: 500;
 }
 
 .settings-tool-meta {
   font-size: 12px;
-  color: var(--text-muted);
-  line-height: 1.5;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  opacity: 0.72;
 }
 
 .settings-tool-chip {
   display: inline-flex;
   align-items: center;
-  padding: 3px 7px;
+  padding: 2px 7px;
   border: 1px solid var(--border);
   border-radius: 999px;
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-muted);
+  background: var(--bg-elevated);
+  font-size: 11px;
+  color: var(--text-secondary);
+  opacity: 0.72;
 }
 
 .settings-tool-item-actions {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
   justify-content: flex-end;
 }
 
@@ -157,10 +167,9 @@
   border: none;
   background: none;
   padding: 0;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: color var(--transition);
 }
 
 .settings-tool-link:hover {
@@ -176,33 +185,35 @@
 }
 
 .settings-item-trigger {
-  width: 28px;
-  height: 28px;
-  border-radius: 999px;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: var(--text-muted);
-  background: transparent;
-  transition: color var(--transition), background var(--transition);
+  background: var(--bg-elevated);
+  opacity: 0.82;
 }
 
 .settings-item-trigger:hover,
 .settings-item-trigger.open {
   color: var(--text);
-  background: var(--bg-hover);
+  opacity: 1;
+  border-color: var(--text-muted);
 }
 
 .settings-item-dropdown {
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + 8px);
   right: 0;
-  min-width: 150px;
-  padding: 4px;
+  min-width: 160px;
+  padding: 6px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 8px;
   background: var(--bg-surface);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.28);
+  box-shadow: var(--shadow-md);
   z-index: 30;
 }
 
@@ -213,12 +224,11 @@
   border-radius: 8px;
   color: var(--text-secondary);
   font-size: 13px;
-  transition: color var(--transition), background var(--transition);
 }
 
 .settings-item-option:hover {
   color: var(--text);
-  background: rgba(255,255,255,0.03);
+  background: var(--bg-elevated);
 }
 
 .settings-item-option.danger {
@@ -226,54 +236,55 @@
 }
 
 .settings-tool-empty {
-  padding: 6px 0 0;
+  padding: 4px 0 0;
   font-size: 12px;
-  color: var(--text-muted);
+  color: var(--text-secondary);
+  opacity: 0.72;
 }
 
 .settings-tool-swatches {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 10px;
 }
 
 .settings-tool-swatch {
-  width: 20px;
-  height: 20px;
-  border-radius: 999px;
-  border: 1px solid transparent;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
   cursor: pointer;
 }
 
 .settings-tool-swatch.active {
-  box-shadow: 0 0 0 1px var(--text);
+  border-color: var(--text);
 }
 
 .settings-tool-inline {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
 .settings-tool-inline-color {
-  width: 26px;
-  height: 22px;
-  padding: 0;
-  border: none;
-  background: transparent;
+  width: 44px;
+  height: 40px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-elevated);
   cursor: pointer;
 }
 
 .settings-tool-preview {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-  font-size: 12px;
-  color: var(--text-muted);
+  min-height: 40px;
+}
+
+.settings-tool-preview .tag-pill {
+  cursor: default;
 }
 
 @media (max-width: 768px) {
